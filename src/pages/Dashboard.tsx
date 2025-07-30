@@ -93,7 +93,37 @@ const Dashboard = () => {
       return;
     }
 
-    const validSubtasks = subtasks.filter(subtask => subtask.name.trim() !== '');
+    // Check for missing fields in subtasks
+    const missingFields: string[] = [];
+    const validSubtasks = subtasks.filter((subtask, index) => {
+      const errors: string[] = [];
+      
+      if (!subtask.name.trim()) {
+        errors.push(`Subtask ${index + 1}: Name is required`);
+      }
+      if (!subtask.workType) {
+        errors.push(`Subtask ${index + 1}: Work Type is required`);
+      }
+      if (!subtask.timesheetPath) {
+        errors.push(`Subtask ${index + 1}: Timesheet Path is required`);
+      }
+      
+      if (errors.length > 0) {
+        missingFields.push(...errors);
+        return false;
+      }
+      return true;
+    });
+
+    if (missingFields.length > 0) {
+      toast({
+        title: "Missing required fields",
+        description: missingFields.join(", "),
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (validSubtasks.length === 0) {
       toast({
         title: "No subtasks",
@@ -105,8 +135,8 @@ const Dashboard = () => {
 
     // TODO: Submit to Jira API
     toast({
-      title: "Subtasks created",
-      description: `${validSubtasks.length} subtasks created for ticket ${ticketNumber}`,
+      title: "Subtasks successfully created!",
+      description: `${validSubtasks.length} subtask(s) have been created for ticket ${ticketNumber}`,
     });
   };
 
