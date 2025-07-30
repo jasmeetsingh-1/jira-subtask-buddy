@@ -324,7 +324,15 @@ const Dashboard = () => {
           <div className="text-center space-y-4 py-6">
             <div className="text-lg">
               <span className="font-semibold">{createdSubtasksCount}</span> subtask(s) have been created for ticket{" "}
-              <span className="font-mono bg-muted px-2 py-1 rounded">{ticketNumber}</span>
+              <button 
+                className="font-mono bg-primary text-primary-foreground px-3 py-1 rounded hover:bg-primary/90 transition-colors cursor-pointer underline"
+                onClick={() => {
+                  // TODO: Open Jira ticket in new tab
+                  window.open(`https://your-jira-instance.atlassian.net/browse/${ticketNumber}`, '_blank');
+                }}
+              >
+                {ticketNumber}
+              </button>
             </div>
             <Button 
               onClick={() => setShowSuccessModal(false)}
