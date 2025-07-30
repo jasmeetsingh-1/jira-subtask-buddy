@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Settings, Plus, Trash2, User } from "lucide-react";
@@ -21,6 +22,8 @@ interface SubtaskData {
 const Dashboard = () => {
   const [username, setUsername] = useState("");
   const [ticketNumber, setTicketNumber] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdSubtasksCount, setCreatedSubtasksCount] = useState(0);
   const [subtasks, setSubtasks] = useState<SubtaskData[]>([
     {
       id: '1',
@@ -134,10 +137,8 @@ const Dashboard = () => {
     }
 
     // TODO: Submit to Jira API
-    toast({
-      title: "Subtasks successfully created!",
-      description: `${validSubtasks.length} subtask(s) have been created for ticket ${ticketNumber}`,
-    });
+    setCreatedSubtasksCount(validSubtasks.length);
+    setShowSuccessModal(true);
   };
 
   const handleLogout = () => {
@@ -311,6 +312,30 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-green-600">
+              🎉 Subtasks Successfully Created!
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-center space-y-4 py-6">
+            <div className="text-lg">
+              <span className="font-semibold">{createdSubtasksCount}</span> subtask(s) have been created for ticket{" "}
+              <span className="font-mono bg-muted px-2 py-1 rounded">{ticketNumber}</span>
+            </div>
+            <Button 
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full"
+              size="lg"
+            >
+              Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
