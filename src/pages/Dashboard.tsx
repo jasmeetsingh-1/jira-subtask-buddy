@@ -183,83 +183,92 @@ const Dashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {subtasks.map((subtask, index) => (
-                  <div key={subtask.id} className="p-4 border rounded-lg space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium">Subtask {index + 1}</h4>
-                      {subtasks.length > 1 && (
-                        <Button
-                          onClick={() => removeSubtask(subtask.id)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Subtask Name</Label>
-                        <Input
-                          placeholder="Enter subtask name"
-                          value={subtask.name}
-                          onChange={(e) => updateSubtask(subtask.id, 'name', e.target.value)}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Work Type</Label>
-                        <Select
-                          value={subtask.workType}
-                          onValueChange={(value) => updateSubtask(subtask.id, 'workType', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select work type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {workTypes.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Timesheet Path</Label>
-                        <Select
-                          value={subtask.timesheetPath}
-                          onValueChange={(value) => updateSubtask(subtask.id, 'timesheetPath', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select timesheet path" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {timesheetPaths.map((path) => (
-                              <SelectItem key={path} value={path}>
-                                {path}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`assign-${subtask.id}`}
-                          checked={subtask.assignToMe}
-                          onCheckedChange={(checked) => 
-                            updateSubtask(subtask.id, 'assignToMe', checked as boolean)
-                          }
-                        />
-                        <Label htmlFor={`assign-${subtask.id}`}>Assign to me</Label>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2 font-medium">#</th>
+                      <th className="text-left p-2 font-medium">Subtask Name</th>
+                      <th className="text-left p-2 font-medium">Work Type</th>
+                      <th className="text-left p-2 font-medium">Timesheet Path</th>
+                      <th className="text-left p-2 font-medium">Assign to Me</th>
+                      <th className="text-left p-2 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subtasks.map((subtask, index) => (
+                      <tr key={subtask.id} className="border-b hover:bg-muted/50">
+                        <td className="p-2">
+                          <span className="text-sm font-medium">{index + 1}</span>
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            placeholder="Enter subtask name"
+                            value={subtask.name}
+                            onChange={(e) => updateSubtask(subtask.id, 'name', e.target.value)}
+                            className="min-w-[200px]"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Select
+                            value={subtask.workType}
+                            onValueChange={(value) => updateSubtask(subtask.id, 'workType', value)}
+                          >
+                            <SelectTrigger className="min-w-[150px]">
+                              <SelectValue placeholder="Select work type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {workTypes.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="p-2">
+                          <Select
+                            value={subtask.timesheetPath}
+                            onValueChange={(value) => updateSubtask(subtask.id, 'timesheetPath', value)}
+                          >
+                            <SelectTrigger className="min-w-[150px]">
+                              <SelectValue placeholder="Select timesheet path" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {timesheetPaths.map((path) => (
+                                <SelectItem key={path} value={path}>
+                                  {path}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="p-2">
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              id={`assign-${subtask.id}`}
+                              checked={subtask.assignToMe}
+                              onCheckedChange={(checked) => 
+                                updateSubtask(subtask.id, 'assignToMe', checked as boolean)
+                              }
+                            />
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          {subtasks.length > 1 && (
+                            <Button
+                              onClick={() => removeSubtask(subtask.id)}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
