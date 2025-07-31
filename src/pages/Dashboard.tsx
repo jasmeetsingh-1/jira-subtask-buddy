@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, Plus, Trash2, User } from "lucide-react";
+import { Settings, Plus, Trash2, User, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SubtaskData {
@@ -173,12 +173,8 @@ const Dashboard = () => {
                 Configuration
               </Button>
               <Button variant="outline" size="sm" onClick={handleLogout}>
-                <Avatar className="w-6 h-6 mr-2">
-                  <AvatarFallback>
-                    <User className="w-4 h-4" />
-                  </AvatarFallback>
-                </Avatar>
-                Profile
+                <LogOut className="w-4 h-4 mr-2"/>
+                Logout
               </Button>
             </div>
           </div>

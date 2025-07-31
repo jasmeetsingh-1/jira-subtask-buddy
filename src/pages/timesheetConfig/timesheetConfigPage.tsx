@@ -18,8 +18,6 @@ export interface Timesheet {
   id: string;
   title: string;
   entries: TimesheetEntry[];
-  createdAt: string;
-  updatedAt: string;
 }
 
 const TimesheetManager = () => {
@@ -51,20 +49,18 @@ const TimesheetManager = () => {
   }, [timesheets]);
 
   const handleSaveTimesheet = (entries: TimesheetEntry[]) => {
-    const newTimesheet: Timesheet = {
-      id: Date.now().toString(),
-      title: entries.length > 0 ? entries[0].label : 'Untitled',
-      entries,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const newTimesheets: Timesheet[] = entries.map((entry, index) => ({
+      id: `${Date.now() + index}-${entry.id}`,
+      title: entry.label,
+      entries: [entry],
+    }));
 
-    setTimesheets(prev => [newTimesheet, ...prev]);
+    setTimesheets(prev => [...newTimesheets, ...prev]);
     setIsModalOpen(false);
     
     toast({
       title: "Success",
-      description: "Timesheet saved successfully",
+      description: `${newTimesheets.length} timesheet entries saved successfully`,
     });
   };
 

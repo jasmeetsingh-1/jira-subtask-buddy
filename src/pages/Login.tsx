@@ -9,8 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { loginToJira } from '../api/jiraLogin';
 
 const Login = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("jasmeet.singh1");
+  const [password, setPassword] = useState("Jirapassword@123");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
