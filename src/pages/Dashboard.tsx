@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Settings, Plus, Trash2, User, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
+import { authActions } from '@/store/store';
 
 interface SubtaskData {
   id: string;
@@ -20,58 +22,45 @@ interface SubtaskData {
 }
 
 const Dashboard = () => {
-  const [username, setUsername] = useState("");
   const [ticketNumber, setTicketNumber] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdSubtasksCount, setCreatedSubtasksCount] = useState(0);
   const [subtasks, setSubtasks] = useState<SubtaskData[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux store
+  const { isLoggedIn, username } = useAppSelector(state => state.auth);
+  const { timesheets } = useAppSelector(state => state.timesheet);
+  const { workTypes: workTypeConfigs } = useAppSelector(state => state.workTypes);
+  
   const [workTypes, setWorkTypes] = useState<string[]>([]);
   const [timesheetPaths, setTimesheetPaths] = useState<string[]>([]);
   const [defaultWorkType, setDefaultWorkType] = useState<string>("");
 
   useEffect(() => {
-    const storedUsername = localStorage.getItem('jira-username');
-    if (!storedUsername) {
+    if (!isLoggedIn || !username) {
       navigate('/');
       return;
     }
-    setUsername(storedUsername);
 
-    // Load configured timesheets and work types
-    const savedTimesheets = localStorage.getItem('timesheets');
-    if (savedTimesheets) {
-      try {
-        const timesheets = JSON.parse(savedTimesheets);
-        const paths = timesheets.map((ts: any) => ts.title);
-        setTimesheetPaths(paths);
-      } catch (error) {
-        console.error('Error loading timesheets:', error);
-      }
-    }
+    // Load configured timesheets and work types from Redux store
+    const paths = timesheets.flatMap(ts => ts.entries.map(entry => entry.path));
+    setTimesheetPaths(paths);
 
-    const savedWorkTypes = localStorage.getItem('workTypes');
-    if (savedWorkTypes) {
-      try {
-        const workTypeConfigs = JSON.parse(savedWorkTypes);
-        const types = workTypeConfigs.map((wt: any) => wt.name);
-        setWorkTypes(types);
-        
-        const defaultType = workTypeConfigs.find((wt: any) => wt.isDefault);
-        if (defaultType) {
-          setDefaultWorkType(defaultType.name);
-        }
-      } catch (error) {
-        console.error('Error loading work types:', error);
-      }
+    const types = workTypeConfigs.map(wt => wt.name);
+    setWorkTypes(types);
+    
+    const defaultType = workTypeConfigs.find(wt => wt.isDefault);
+    if (defaultType) {
+      setDefaultWorkType(defaultType.name);
     }
-  }, [navigate]);
+  }, [navigate, isLoggedIn, username, timesheets, workTypeConfigs]);
 
   // Initialize first subtask when data is loaded
   useEffect(() => {
-    if (subtasks.length === 0 && workTypes.length > 0 && timesheetPaths.length > 0) {
+    if (subtasks.length === 0 && workTypes.length > 0 && timesheetPaths.length > 0 && defaultWorkType) {
       const initialSubtask: SubtaskData = {
         id: '1',
         name: '',
@@ -81,7 +70,7 @@ const Dashboard = () => {
       };
       setSubtasks([initialSubtask]);
     }
-  }, [workTypes, timesheetPaths, defaultWorkType, subtasks.length]);
+  }, [workTypes, timesheetPaths, defaultWorkType]);
 
   // Auto-select work type based on timesheet path
   const getWorkTypeFromPath = (path: string): string => {
@@ -193,8 +182,7 @@ const Dashboard = () => {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('jira-username');
-    localStorage.removeItem('jira-credentials');
+    dispatch(authActions.logout());
     navigate('/');
   };
 

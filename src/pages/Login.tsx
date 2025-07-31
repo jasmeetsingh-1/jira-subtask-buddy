@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAppDispatch } from '@/hooks/useRedux';
+import { authActions } from '@/store/store';
 
 import { loginToJira } from '../api/jiraLogin';
 
@@ -14,6 +16,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const dispatch = useAppDispatch();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,13 +36,13 @@ const Login = () => {
       const result = await loginToJira(username, password);
 
       if (result.success) {
-        // Save auth data, navigate, etc.
+        // Save auth data to Redux store
+        dispatch(authActions.login({ username }));
+        
         toast({
           title: "Login successful",
           description: "Welcome to Jira Task Manager",
         });
-        localStorage.setItem('jira-username', username);
-        localStorage.setItem('jira-credentials', btoa(username + ':' + password));
         navigate('/dashboard');
       } else {
         throw new Error('Invalid credentials');

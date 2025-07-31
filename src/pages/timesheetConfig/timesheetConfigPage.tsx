@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, FolderOpen, Trash2, ArrowLeft, Settings, Star } from 'lucide-react';
+import { Plus, Calendar, FolderOpen, Trash2, ArrowLeft, Settings, Star, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Switch } from '@/components/ui/switch';
 import TimesheetModal from './timesheetConfigModal';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
+import { timesheetActions, workTypesActions, themeActions } from '@/store/store';
 
 export interface TimesheetEntry {
   id: string;
@@ -27,53 +30,26 @@ export interface WorkTypeConfig {
 }
 
 const TimesheetManager = () => {
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
-  const [workTypes, setWorkTypes] = useState<WorkTypeConfig[]>([
-    { id: '1', name: 'Development', isDefault: true },
-    { id: '2', name: 'Testing', isDefault: false },
-    { id: '3', name: 'Bug Fix', isDefault: false },
-    { id: '4', name: 'Code Review', isDefault: false },
-    { id: '5', name: 'Documentation', isDefault: false },
-    { id: '6', name: 'Research', isDefault: false }
-  ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  // Load timesheets and work types from localStorage on component mount
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux store
+  const { timesheets } = useAppSelector(state => state.timesheet);
+  const { workTypes } = useAppSelector(state => state.workTypes);
+  const { isDarkMode } = useAppSelector(state => state.theme);
+  
+  // Apply dark mode
   useEffect(() => {
-    const savedTimesheets = localStorage.getItem('timesheets');
-    if (savedTimesheets) {
-      try {
-        setTimesheets(JSON.parse(savedTimesheets));
-      } catch (error) {
-        console.error('Error parsing saved timesheets:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load saved timesheets",
-          variant: "destructive",
-        });
-      }
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
+  }, [isDarkMode]);
 
-    const savedWorkTypes = localStorage.getItem('workTypes');
-    if (savedWorkTypes) {
-      try {
-        setWorkTypes(JSON.parse(savedWorkTypes));
-      } catch (error) {
-        console.error('Error parsing saved work types:', error);
-      }
-    }
-  }, [toast]);
-
-  // Save timesheets and work types to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('timesheets', JSON.stringify(timesheets));
-  }, [timesheets]);
-
-  useEffect(() => {
-    localStorage.setItem('workTypes', JSON.stringify(workTypes));
-  }, [workTypes]);
+  // Data is now loaded from Redux store - no need for localStorage loading
 
   const handleSaveTimesheet = (entries: TimesheetEntry[]) => {
     const newTimesheets: Timesheet[] = entries.map((entry, index) => ({
@@ -82,7 +58,7 @@ const TimesheetManager = () => {
       entries: [entry],
     }));
 
-    setTimesheets(prev => [...newTimesheets, ...prev]);
+    newTimesheets.forEach(ts => dispatch(timesheetActions.addTimesheet(ts)));
     setIsModalOpen(false);
     
     toast({
@@ -92,7 +68,7 @@ const TimesheetManager = () => {
   };
 
   const handleDeleteTimesheet = (id: string) => {
-    setTimesheets(prev => prev.filter(timesheet => timesheet.id !== id));
+    dispatch(timesheetActions.deleteTimesheet(id));
     toast({
       title: "Deleted",
       description: "Timesheet deleted successfully",
@@ -100,14 +76,15 @@ const TimesheetManager = () => {
   };
 
   const handleSetDefaultWorkType = (id: string) => {
-    setWorkTypes(prev => prev.map(wt => ({
-      ...wt,
-      isDefault: wt.id === id
-    })));
+    dispatch(workTypesActions.setDefaultWorkType(id));
     toast({
       title: "Updated",
       description: "Default work type updated successfully",
     });
+  };
+
+  const handleToggleTheme = () => {
+    dispatch(themeActions.toggleTheme());
   };
 
   return (
@@ -123,7 +100,16 @@ const TimesheetManager = () => {
               Manage your timesheet configurations and paths
             </p>
           </div>
-          <div className='flex gap-3'>
+          <div className='flex items-center gap-3'>
+            {/* Dark Mode Toggle */}
+            <div className="flex items-center gap-2">
+              <Sun className="h-4 w-4" />
+              <Switch
+                checked={isDarkMode}
+                onCheckedChange={handleToggleTheme}
+              />
+              <Moon className="h-4 w-4" />
+            </div>
             <Button
               onClick={() => navigate("/dashboard")}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-colors"
