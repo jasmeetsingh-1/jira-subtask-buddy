@@ -94,7 +94,7 @@ const TimesheetManager = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Timesheet Manager
+              Grazitti jira-subtask Configurations
             </h1>
             <p className="text-muted-foreground">
               Manage your timesheet configurations and paths
@@ -122,7 +122,7 @@ const TimesheetManager = () => {
               className="flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              New Timesheet
+              Add new timesheet path
             </Button>
           </div>
         </div>
@@ -214,8 +214,8 @@ const TimesheetManager = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Label</TableHead>
-                    <TableHead>Path</TableHead>
+                    <TableHead>Timesheet Path Label</TableHead>
+                    <TableHead>Timesheet Path</TableHead>
                     <TableHead className="text-center">Entries</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
