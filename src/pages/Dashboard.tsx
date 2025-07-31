@@ -138,8 +138,13 @@ const Dashboard = () => {
 
     // TODO: Submit to Jira API
     setCreatedSubtasksCount(validSubtasks.length);
+    createSubtask();
     setShowSuccessModal(true);
   };
+
+  const createSubtask = () => {
+    console.log("subtask to make >>>>", subtasks);
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('jira-username');
@@ -161,7 +166,9 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-muted-foreground">Welcome, {username}</span>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={()=>{
+                navigate("/configuration")
+              }}>
                 <Settings className="w-4 h-4 mr-2" />
                 Configuration
               </Button>

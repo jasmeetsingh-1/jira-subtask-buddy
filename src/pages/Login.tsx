@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
+import { loginToJira } from '../api/jiraLogin';
+
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -26,22 +28,37 @@ const Login = () => {
       // });
 
       // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (username && password) {
-        // Store credentials (in real app, use secure storage)
-        localStorage.setItem('jira-username', username);
-        localStorage.setItem('jira-credentials', btoa(username + ':' + password));
-        
+      // await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const result = await loginToJira(username, password);
+
+      if (result.success) {
+        // Save auth data, navigate, etc.
         toast({
           title: "Login successful",
           description: "Welcome to Jira Task Manager",
         });
-        
+        localStorage.setItem('jira-username', username);
+        localStorage.setItem('jira-credentials', btoa(username + ':' + password));
         navigate('/dashboard');
       } else {
         throw new Error('Invalid credentials');
       }
+      
+      // if (username && password) {
+      //   // Store credentials (in real app, use secure storage)
+        // localStorage.setItem('jira-username', username);
+        // localStorage.setItem('jira-credentials', btoa(username + ':' + password));
+        
+      //   toast({
+      //     title: "Login successful",
+      //     description: "Welcome to Jira Task Manager",
+      //   });
+        
+      //   navigate('/dashboard');
+      // } else {
+      //   throw new Error('Invalid credentials');
+      // }
     } catch (error) {
       toast({
         title: "Login failed",
@@ -58,10 +75,24 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">J</span>
-            </div>
-            <span className="ml-3 text-2xl font-bold text-foreground">Jira Task Manager</span>
+              {/* <span className="text-primary-foreground font-bold text-xl">J</span> */}
+              <span>
+                  <svg width="23.213" height="24" viewBox="0 0 23.213 24">
+                    <defs>
+                      <linearGradient id="linear-gradient" x1="0.335" y1="0.303" x2="0.002" y2="0.519" gradientUnits="objectBoundingBox">
+                        <stop offset="0" stop-color="#0052cc"/>
+                        <stop offset="1" stop-color="#2684ff"/>
+                      </linearGradient>
+                      <linearGradient id="linear-gradient-2" x1="-0.413" y1="-0.033" x2="-0.081" y2="-0.248" />
+                    </defs>
+                    <g id="Group_5806" data-name="Group 5806" transform="translate(-9732.77 -1412)">
+                      <path id="path8005" d="M22.935,11.328,12.607,1l-1-1L.278,11.328a.951.951,0,0,0,0,1.343l7.1,7.1L11.606,24,22.935,12.671a.95.95,0,0,0,0-1.343ZM11.606,15.547,8.058,12l3.547-3.549L15.154,12Z" transform="translate(9732.77 1412)" fill="#2684ff"/>
+                      <path id="path8015" d="M26.7,8.561A5.975,5.975,0,0,1,26.676.138L18.911,7.9l4.226,4.226Z" transform="translate(9717.675 1411.89)" fill="url(#linear-gradient)"/>
+                      <path id="path8025" d="M61.068,59.414,57.51,62.971a5.974,5.974,0,0,1,0,8.453l7.783-7.784Z" transform="translate(9686.865 1364.576)" fill="url(#linear-gradient-2)"/>
+                    </g>
+                  </svg>
+              </span>
+            <span className="ml-3 text-2xl font-bold text-foreground">Log in to Grazitti Jira</span>
           </div>
           <p className="text-muted-foreground">Sign in to your Jira account</p>
         </div>
