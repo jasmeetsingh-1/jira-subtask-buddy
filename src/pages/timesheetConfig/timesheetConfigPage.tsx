@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, FolderOpen, Trash2, ArrowLeft } from 'lucide-react';
+import { Plus, Calendar, FolderOpen, Trash2, ArrowLeft, Settings, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,13 +20,27 @@ export interface Timesheet {
   entries: TimesheetEntry[];
 }
 
+export interface WorkTypeConfig {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
 const TimesheetManager = () => {
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
+  const [workTypes, setWorkTypes] = useState<WorkTypeConfig[]>([
+    { id: '1', name: 'Development', isDefault: true },
+    { id: '2', name: 'Testing', isDefault: false },
+    { id: '3', name: 'Bug Fix', isDefault: false },
+    { id: '4', name: 'Code Review', isDefault: false },
+    { id: '5', name: 'Documentation', isDefault: false },
+    { id: '6', name: 'Research', isDefault: false }
+  ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Load timesheets from localStorage on component mount
+  // Load timesheets and work types from localStorage on component mount
   useEffect(() => {
     const savedTimesheets = localStorage.getItem('timesheets');
     if (savedTimesheets) {
@@ -41,12 +55,25 @@ const TimesheetManager = () => {
         });
       }
     }
+
+    const savedWorkTypes = localStorage.getItem('workTypes');
+    if (savedWorkTypes) {
+      try {
+        setWorkTypes(JSON.parse(savedWorkTypes));
+      } catch (error) {
+        console.error('Error parsing saved work types:', error);
+      }
+    }
   }, [toast]);
 
-  // Save timesheets to localStorage whenever timesheets change
+  // Save timesheets and work types to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('timesheets', JSON.stringify(timesheets));
   }, [timesheets]);
+
+  useEffect(() => {
+    localStorage.setItem('workTypes', JSON.stringify(workTypes));
+  }, [workTypes]);
 
   const handleSaveTimesheet = (entries: TimesheetEntry[]) => {
     const newTimesheets: Timesheet[] = entries.map((entry, index) => ({
@@ -72,13 +99,14 @@ const TimesheetManager = () => {
     });
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+  const handleSetDefaultWorkType = (id: string) => {
+    setWorkTypes(prev => prev.map(wt => ({
+      ...wt,
+      isDefault: wt.id === id
+    })));
+    toast({
+      title: "Updated",
+      description: "Default work type updated successfully",
     });
   };
 
@@ -140,6 +168,44 @@ const TimesheetManager = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Work Types Configuration */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Work Type Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {workTypes.map((workType) => (
+                <div
+                  key={workType.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    workType.isDefault 
+                      ? 'border-primary bg-primary/10' 
+                      : 'border-muted hover:border-primary/50'
+                  }`}
+                  onClick={() => handleSetDefaultWorkType(workType.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{workType.name}</span>
+                    {workType.isDefault && (
+                      <Star className="h-4 w-4 text-primary fill-current" />
+                    )}
+                  </div>
+                  {workType.isDefault && (
+                    <p className="text-xs text-muted-foreground mt-1">Default work type</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground mt-4">
+              Click on a work type to set it as default. The default work type will be pre-selected when creating new subtasks.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Timesheets Table */}
         {timesheets.length === 0 ? (

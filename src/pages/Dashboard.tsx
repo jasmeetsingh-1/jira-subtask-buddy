@@ -24,35 +24,13 @@ const Dashboard = () => {
   const [ticketNumber, setTicketNumber] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdSubtasksCount, setCreatedSubtasksCount] = useState(0);
-  const [subtasks, setSubtasks] = useState<SubtaskData[]>([
-    {
-      id: '1',
-      name: '',
-      workType: '',
-      timesheetPath: '',
-      assignToMe: false
-    }
-  ]);
+  const [subtasks, setSubtasks] = useState<SubtaskData[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const workTypes = [
-    "Development",
-    "Testing",
-    "Bug Fix",
-    "Code Review",
-    "Documentation",
-    "Research"
-  ];
-
-  const timesheetPaths = [
-    "Frontend Development",
-    "Backend Development",
-    "QA Testing",
-    "DevOps",
-    "UI/UX Design",
-    "Project Management"
-  ];
+  const [workTypes, setWorkTypes] = useState<string[]>([]);
+  const [timesheetPaths, setTimesheetPaths] = useState<string[]>([]);
+  const [defaultWorkType, setDefaultWorkType] = useState<string>("");
 
   useEffect(() => {
     const storedUsername = localStorage.getItem('jira-username');
@@ -61,14 +39,72 @@ const Dashboard = () => {
       return;
     }
     setUsername(storedUsername);
+
+    // Load configured timesheets and work types
+    const savedTimesheets = localStorage.getItem('timesheets');
+    if (savedTimesheets) {
+      try {
+        const timesheets = JSON.parse(savedTimesheets);
+        const paths = timesheets.map((ts: any) => ts.title);
+        setTimesheetPaths(paths);
+      } catch (error) {
+        console.error('Error loading timesheets:', error);
+      }
+    }
+
+    const savedWorkTypes = localStorage.getItem('workTypes');
+    if (savedWorkTypes) {
+      try {
+        const workTypeConfigs = JSON.parse(savedWorkTypes);
+        const types = workTypeConfigs.map((wt: any) => wt.name);
+        setWorkTypes(types);
+        
+        const defaultType = workTypeConfigs.find((wt: any) => wt.isDefault);
+        if (defaultType) {
+          setDefaultWorkType(defaultType.name);
+        }
+      } catch (error) {
+        console.error('Error loading work types:', error);
+      }
+    }
   }, [navigate]);
 
+  // Initialize first subtask when data is loaded
+  useEffect(() => {
+    if (subtasks.length === 0 && workTypes.length > 0 && timesheetPaths.length > 0) {
+      const initialSubtask: SubtaskData = {
+        id: '1',
+        name: '',
+        workType: defaultWorkType,
+        timesheetPath: timesheetPaths[0] || '',
+        assignToMe: false
+      };
+      setSubtasks([initialSubtask]);
+    }
+  }, [workTypes, timesheetPaths, defaultWorkType, subtasks.length]);
+
+  // Auto-select work type based on timesheet path
+  const getWorkTypeFromPath = (path: string): string => {
+    const lowercasePath = path.toLowerCase();
+    if (lowercasePath.includes('development')) {
+      return workTypes.find(type => type.toLowerCase() === 'development') || defaultWorkType;
+    }
+    if (lowercasePath.includes('testing')) {
+      return workTypes.find(type => type.toLowerCase() === 'testing') || defaultWorkType;
+    }
+    if (lowercasePath.includes('review')) {
+      return workTypes.find(type => type.toLowerCase().includes('review')) || defaultWorkType;
+    }
+    return defaultWorkType;
+  };
+
   const addSubtask = () => {
+    const lastSubtask = subtasks[subtasks.length - 1];
     const newSubtask: SubtaskData = {
       id: Date.now().toString(),
       name: '',
-      workType: '',
-      timesheetPath: '',
+      workType: lastSubtask?.workType || defaultWorkType,
+      timesheetPath: lastSubtask?.timesheetPath || '',
       assignToMe: false
     };
     setSubtasks([...subtasks, newSubtask]);
@@ -81,9 +117,19 @@ const Dashboard = () => {
   };
 
   const updateSubtask = (id: string, field: keyof SubtaskData, value: string | boolean) => {
-    setSubtasks(subtasks.map(subtask => 
-      subtask.id === id ? { ...subtask, [field]: value } : subtask
-    ));
+    setSubtasks(subtasks.map(subtask => {
+      if (subtask.id === id) {
+        const updatedSubtask = { ...subtask, [field]: value };
+        
+        // Auto-select work type when timesheet path changes
+        if (field === 'timesheetPath' && typeof value === 'string') {
+          updatedSubtask.workType = getWorkTypeFromPath(value);
+        }
+        
+        return updatedSubtask;
+      }
+      return subtask;
+    }));
   };
 
   const handleSubmit = () => {
