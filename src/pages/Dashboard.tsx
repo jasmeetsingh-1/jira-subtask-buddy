@@ -61,14 +61,23 @@ const Dashboard = () => {
   // Initialize first subtask when data is loaded
   useEffect(() => {
     if (subtasks.length === 0 && workTypes.length > 0 && timesheetPaths.length > 0 && defaultWorkType) {
-      const initialSubtask: SubtaskData = {
-        id: '1',
-        name: '',
-        workType: defaultWorkType,
-        timesheetPath: timesheetPaths[0] || '',
-        assignToMe: false
-      };
-      setSubtasks([initialSubtask]);
+      const initialSubtasks: SubtaskData[] = [
+        {
+          id: '1',
+          name: '',
+          workType: defaultWorkType,
+          timesheetPath: timesheetPaths[0] || '',
+          assignToMe: false
+        },
+        {
+          id: '2',
+          name: 'feature meeting',
+          workType: workTypes.find(type => type.toLowerCase().includes('meeting')) || defaultWorkType,
+          timesheetPath: timesheetPaths[0] || '',
+          assignToMe: false
+        }
+      ];
+      setSubtasks(initialSubtasks);
     }
   }, [workTypes, timesheetPaths, defaultWorkType]);
 
