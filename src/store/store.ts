@@ -10,7 +10,7 @@ const persistConfig = {
 // Auth slice
 const authInitialState = {
   isLoggedIn: false,
-  username: "",
+  authToken: "",
 };
 
 const authSlice = createSlice({
@@ -19,11 +19,11 @@ const authSlice = createSlice({
   reducers: {
     login: (state, action) => {
       state.isLoggedIn = true;
-      state.username = action.payload.username;
+      state.authToken = action.payload.token;
     },
     logout: (state) => {
       state.isLoggedIn = false;
-      state.username = "";
+      state.authToken = "";
     },
   },
 });
@@ -58,15 +58,38 @@ const timesheetSlice = createSlice({
 });
 
 // Work types slice
+// const workTypesInitialState = {
+//   workTypes: [
+//     { id: "1", name: "Development", isDefault: true },
+//     { id: "2", name: "Testing", isDefault: false },
+//     { id: "3", name: "Analysis", isDefault: false },
+//     { id: "4", name: "Documentation", isDefault: false },
+//     { id: "5", name: "Meeting", isDefault: false },
+//   ],
+// };
+
 const workTypesInitialState = {
   workTypes: [
-    { id: "1", name: "Development", isDefault: true },
-    { id: "2", name: "Testing", isDefault: false },
-    { id: "3", name: "Analysis", isDefault: false },
-    { id: "4", name: "Documentation", isDefault: false },
-    { id: "5", name: "Meeting", isDefault: false },
-  ],
-};
+  { id: 1, name: "Development", value: "16701", isDefault: true },
+  { id: 2, name: "Bug Fixing", value: "16708", isDefault: false },
+  { id: 3, name: "Meetings", value: "16705", isDefault: false },
+  { id: 4, name: "Documentation", value: "16704", isDefault: false },
+  { id: 5, name: "Code Review", value: "16702", isDefault: false },
+  { id: 6, name: "Automation Script Writing", value: "16865", isDefault: false },
+  { id: 7, name: "Design review", value: "16703", isDefault: false },
+  { id: 8, name: "Devops", value: "16713", isDefault: false },
+  { id: 9, name: "Eng Internal Tech Support", value: "16907", isDefault: false },
+  { id: 10, name: "Grooming", value: "16707", isDefault: false },
+  { id: 11, name: "R&D", value: "16700", isDefault: false },
+  { id: 12, name: "Re-Testing", value: "16710", isDefault: false },
+  { id: 13, name: "Scrum Meeting", value: "16706", isDefault: false },
+  { id: 14, name: "Test Case Writing", value: "16711", isDefault: false },
+  { id: 15, name: "Testing", value: "16709", isDefault: false },
+  { id: 16, name: "Time Sheet Update", value: "16906", isDefault: false },
+  { id: 17, name: "Unit Testing", value: "16712", isDefault: false },
+  { id: 18, name: "New Joinee Onboarding and Training ", value: "16910", isDefault: false }
+]};
+
 
 const workTypesSlice = createSlice({
   name: "workTypes",

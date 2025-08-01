@@ -31,7 +31,7 @@ const Dashboard = () => {
   const dispatch = useAppDispatch();
   
   // Get data from Redux store
-  const { isLoggedIn, username } = useAppSelector(state => state.auth);
+  const { isLoggedIn, authToken } = useAppSelector(state => state.auth);
   const { timesheets } = useAppSelector(state => state.timesheet);
   const { workTypes: workTypeConfigs } = useAppSelector(state => state.workTypes);
   
@@ -40,7 +40,7 @@ const Dashboard = () => {
   const [defaultWorkType, setDefaultWorkType] = useState<string>("");
 
   useEffect(() => {
-    if (!isLoggedIn || !username) {
+    if (!isLoggedIn || !authToken) {
       navigate('/');
       return;
     }
@@ -56,7 +56,7 @@ const Dashboard = () => {
     if (defaultType) {
       setDefaultWorkType(defaultType.name);
     }
-  }, [navigate, isLoggedIn, username, timesheets, workTypeConfigs]);
+  }, [navigate, isLoggedIn, authToken, timesheets, workTypeConfigs]);
 
   // Initialize first subtask when data is loaded
   useEffect(() => {
@@ -199,7 +199,7 @@ const Dashboard = () => {
               <span className="ml-3 text-xl font-bold text-foreground">Jira Task Manager</span>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">Welcome, {username}</span>
+              <span className="text-sm text-muted-foreground">Welcome</span>
               <Button variant="outline" size="sm" onClick={()=>{
                 navigate("/configuration")
               }}>

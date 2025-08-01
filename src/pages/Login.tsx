@@ -37,7 +37,8 @@ const Login = () => {
 
       if (result.success) {
         // Save auth data to Redux store
-        dispatch(authActions.login({ username }));
+        const token = result.token;
+        dispatch(authActions.login({ token }));
         
         toast({
           title: "Login successful",
@@ -47,21 +48,6 @@ const Login = () => {
       } else {
         throw new Error('Invalid credentials');
       }
-      
-      // if (username && password) {
-      //   // Store credentials (in real app, use secure storage)
-        // localStorage.setItem('jira-username', username);
-        // localStorage.setItem('jira-credentials', btoa(username + ':' + password));
-        
-      //   toast({
-      //     title: "Login successful",
-      //     description: "Welcome to Jira Task Manager",
-      //   });
-        
-      //   navigate('/dashboard');
-      // } else {
-      //   throw new Error('Invalid credentials');
-      // }
     } catch (error) {
       toast({
         title: "Login failed",
