@@ -31,12 +31,12 @@ const Dashboard = () => {
   const dispatch = useAppDispatch();
   
   // Get data from Redux store
-  const { isLoggedIn, authToken } = useAppSelector(state => state.auth);
+  const { isLoggedIn, authToken, userData } = useAppSelector(state => state.auth);
   const { timesheets } = useAppSelector(state => state.timesheet);
   const { workTypes: workTypeConfigs } = useAppSelector(state => state.workTypes);
   
   const [workTypes, setWorkTypes] = useState<string[]>([]);
-  const [timesheetPaths, setTimesheetPaths] = useState<string[]>([]);
+  const [timesheetPaths, setTimesheetPaths] = useState([]);
   const [defaultWorkType, setDefaultWorkType] = useState<string>("");
 
   useEffect(() => {
@@ -46,6 +46,7 @@ const Dashboard = () => {
     }
 
     // Load configured timesheets and work types from Redux store
+    console.log("time sheets >>>>>", timesheets);
     const paths = timesheets.flatMap(ts => ts.entries.map(entry => entry.path));
     setTimesheetPaths(paths);
 
@@ -56,6 +57,7 @@ const Dashboard = () => {
     if (defaultType) {
       setDefaultWorkType(defaultType.name);
     }
+
   }, [navigate, isLoggedIn, authToken, timesheets, workTypeConfigs]);
 
   // Track last selected work type for new subtasks
@@ -64,27 +66,33 @@ const Dashboard = () => {
   // Initialize first subtask when data is loaded
   useEffect(() => {
     if (subtasks.length === 0 && workTypes.length > 0 && timesheetPaths.length > 0 && defaultWorkType) {
-      const meetingsWorkType = workTypes.find(type => type.toLowerCase().includes('meeting')) || defaultWorkType;
+      const meetingsWorkType = workTypes.find(type => type.toLowerCase().includes('meetings')) || defaultWorkType;
       const initialSubtasks: SubtaskData[] = [
         {
           id: '1',
           name: 'Feature discussion',
           workType: meetingsWorkType,
-          timesheetPath: timesheetPaths[0] || '',
+          timesheetPath: findMeetingTimesheet() || '',
           assignToMe: false
         },
         {
           id: '2',
           name: '',
           workType: defaultWorkType,
-          timesheetPath: timesheetPaths[0] || '',
+          timesheetPath: '',
           assignToMe: false
         }
       ];
-      setSubtasks(initialSubtasks);
+      setSubtasks([...initialSubtasks]);
       setLastSelectedWorkType(defaultWorkType);
     }
   }, [workTypes, timesheetPaths, defaultWorkType]);
+
+  const findMeetingTimesheet = () => {
+    const timesheetPath = timesheetPaths.find((item)=> item.includes("Meeting"));
+    console.log("timesheetPath", timesheetPath);
+    return timesheetPath;
+  }
 
   // Auto-select work type based on timesheet path
   const getWorkTypeFromPath = (path: string): string => {
@@ -92,11 +100,11 @@ const Dashboard = () => {
     if (lowercasePath.includes('development')) {
       return workTypes.find(type => type.toLowerCase() === 'development') || defaultWorkType;
     }
-    if (lowercasePath.includes('testing')) {
-      return workTypes.find(type => type.toLowerCase() === 'testing') || defaultWorkType;
+    if (lowercasePath.includes('bugfixing')) {
+      return workTypes.find(type => type.toLowerCase() === 'bug fixing') || defaultWorkType;
     }
-    if (lowercasePath.includes('review')) {
-      return workTypes.find(type => type.toLowerCase().includes('review')) || defaultWorkType;
+    if (lowercasePath.includes('meetings')) {
+      return workTypes.find(type => type.toLowerCase() === 'Meetings') || defaultWorkType;
     }
     return defaultWorkType;
   };
@@ -213,12 +221,16 @@ const Dashboard = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">J</span>
+                <span className="text-primary-foreground font-bold">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm">
+                      {userData.displayName?.charAt(0)}
+                    </div>
+                </span>
               </div>
-              <span className="ml-3 text-xl font-bold text-foreground">Jira Task Manager</span>
+              <span className="ml-3 text-xl text-foreground">Welcome, <span className="font-bold">{userData.displayName}</span></span>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">Welcome</span>
+              {/* <span className="text-sm text-muted-foreground"></span> */}
               <Button variant="outline" size="sm" onClick={()=>{
                 navigate("/configuration")
               }}>
@@ -244,12 +256,12 @@ const Dashboard = () => {
 
           {/* Ticket Number */}
           <Card className="shadow-card">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-4">
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between gap-4">
                 <CardTitle className="shrink-0">Ticket Information</CardTitle>
                 <Input
                   id="ticket"
-                  placeholder="e.g., PROJ-123"
+                  placeholder="e.g., SU-0000"
                   value={ticketNumber}
                   onChange={(e) => setTicketNumber(e.target.value)}
                   className="max-w-xs"
@@ -275,8 +287,8 @@ const Dashboard = () => {
                     <tr className="border-b">
                       <th className="text-left p-2 font-medium">#</th>
                       <th className="text-left p-2 font-medium">Subtask Name</th>
-                      <th className="text-left p-2 font-medium">Work Type</th>
                       <th className="text-left p-2 font-medium">Timesheet Path</th>
+                      <th className="text-left p-2 font-medium">Work Type</th>
                       <th className="text-left p-2 font-medium">Assign to Me</th>
                       <th className="text-left p-2 font-medium">Actions</th>
                     </tr>
@@ -297,23 +309,6 @@ const Dashboard = () => {
                         </td>
                         <td className="p-2">
                           <Select
-                            value={subtask.workType}
-                            onValueChange={(value) => updateSubtask(subtask.id, 'workType', value)}
-                          >
-                            <SelectTrigger className="min-w-[150px]">
-                              <SelectValue placeholder="Select work type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {workTypes.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="p-2">
-                          <Select
                             value={subtask.timesheetPath}
                             onValueChange={(value) => updateSubtask(subtask.id, 'timesheetPath', value)}
                           >
@@ -324,6 +319,23 @@ const Dashboard = () => {
                               {timesheetPaths.map((path) => (
                                 <SelectItem key={path} value={path}>
                                   {path}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="p-2">
+                          <Select
+                            value={subtask.workType}
+                            onValueChange={(value) => updateSubtask(subtask.id, 'workType', value)}
+                          >
+                            <SelectTrigger className="min-w-[150px]">
+                              <SelectValue placeholder="Select work type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {workTypes.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
                                 </SelectItem>
                               ))}
                             </SelectContent>

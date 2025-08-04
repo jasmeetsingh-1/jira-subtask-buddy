@@ -11,6 +11,7 @@ const persistConfig = {
 const authInitialState = {
   isLoggedIn: false,
   authToken: "",
+  userData:{},
 };
 
 const authSlice = createSlice({
@@ -18,12 +19,17 @@ const authSlice = createSlice({
   initialState: authInitialState,
   reducers: {
     login: (state, action) => {
+      console.log("udpateing the login >>>", action.payload);
       state.isLoggedIn = true;
       state.authToken = action.payload.token;
+      state.userData = {
+        ...action.payload.userData,
+      }
     },
     logout: (state) => {
       state.isLoggedIn = false;
       state.authToken = "";
+      state.userData = {};
     },
   },
 });
@@ -57,17 +63,6 @@ const timesheetSlice = createSlice({
   },
 });
 
-// Work types slice
-// const workTypesInitialState = {
-//   workTypes: [
-//     { id: "1", name: "Development", isDefault: true },
-//     { id: "2", name: "Testing", isDefault: false },
-//     { id: "3", name: "Analysis", isDefault: false },
-//     { id: "4", name: "Documentation", isDefault: false },
-//     { id: "5", name: "Meeting", isDefault: false },
-//   ],
-// };
-
 const workTypesInitialState = {
   workTypes: [
   { id: 1, name: "Development", value: "16701", isDefault: true },
@@ -98,7 +93,7 @@ const workTypesSlice = createSlice({
     setDefaultWorkType: (state, action) => {
       state.workTypes = state.workTypes.map(wt => ({
         ...wt,
-        isDefault: wt.id === action.payload,
+        isDefault: wt.id == action.payload,
       }));
     },
     setWorkTypes: (state, action) => {

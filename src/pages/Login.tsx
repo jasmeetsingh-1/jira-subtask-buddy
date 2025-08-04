@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch } from '@/hooks/useRedux';
 import { authActions } from '@/store/store';
 
-import { loginToJira } from '../api/jiraLogin';
+import { loginToJira, getUserDetails } from '../api/jiraLogin';
 
 const Login = () => {
   const [username, setUsername] = useState("jasmeet.singh1");
@@ -23,28 +23,15 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual Jira API call
-      // const response = await fetch('/api/jira/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ username, password })
-      // });
-
-      // Simulate API call for now
-      // await new Promise(resolve => setTimeout(resolve, 1000));
-
       const result = await loginToJira(username, password);
 
       if (result.success) {
-        // Save auth data to Redux store
         const token = result.token;
-        dispatch(authActions.login({ token }));
-        
-        toast({
-          title: "Login successful",
-          description: "Welcome to Jira Task Manager",
+        fetchUserDetails({
+          username,
+          password,
+          token
         });
-        navigate('/dashboard');
       } else {
         throw new Error('Invalid credentials');
       }
@@ -58,6 +45,21 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  const fetchUserDetails = async (userData) => {
+    const res = await getUserDetails(userData.username, userData.password);
+    if(res.success){
+      dispatch(authActions.login({ 
+        userData : {...res.data},
+        token: userData.token
+       }));
+      navigate('/dashboard');
+      toast({
+        title: "Login successful",
+        description: "Welcome to Jira Task Manager",
+      });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-surface flex items-center justify-center p-4">

@@ -42,6 +42,7 @@ const TimesheetManager = () => {
   const { workTypes } = useAppSelector(state => state.workTypes);
   const { isDarkMode } = useAppSelector(state => state.theme);
 
+  console.log(" work type ??????", workTypes);
   // Apply dark mode to configuration page
   useEffect(() => {
     if (isDarkMode) {
@@ -144,7 +145,7 @@ const TimesheetManager = () => {
                   value={defaultWorkType?.id.toString() || ""}
                   onValueChange={handleSetDefaultWorkType}
                 >
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-1/2">
                     <SelectValue placeholder="Select default work type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -183,11 +184,11 @@ const TimesheetManager = () => {
               {timesheets.length === 0 ? (
                 <div className="text-center py-8">
                   <FolderOpen className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-3">No timesheet paths yet</p>
-                  <Button onClick={() => setIsModalOpen(true)} size="sm">
+                  <p className="text-sm text-muted-foreground mb-3">No timesheet paths yet, add paths to get started!</p>
+                  {/* <Button onClick={() => setIsModalOpen(true)} size="sm">
                     <Plus className="h-3 w-3 mr-1" />
                     Create First Path
-                  </Button>
+                  </Button> */}
                 </div>
               ) : (
                 <Table>
