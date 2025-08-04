@@ -126,8 +126,11 @@ const TimesheetManager = () => {
               <CardTitle className="text-lg">Work Type Configuration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="default-worktype">Default Work Type</Label>
+              <div className="space-y-2 flex items-center">
+                <div className="flex flex-col justify-end">
+                  <Label htmlFor="default-worktype">Default Work Type</Label>
+                  <p className="w-[190px] mt-2 text-[11px] leading-[13px] text-muted-foreground">This work type will be selected by default for new subtasks.</p>
+                </div>
                 <Select
                   value={defaultWorkType?.id.toString() || ""}
                   onValueChange={handleSetDefaultWorkType}
@@ -148,9 +151,7 @@ const TimesheetManager = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  This work type will be selected by default for new subtasks.
-                </p>
+                
               </div>
             </CardContent>
           </Card>
