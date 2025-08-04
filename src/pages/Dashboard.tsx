@@ -68,15 +68,15 @@ const Dashboard = () => {
       const initialSubtasks: SubtaskData[] = [
         {
           id: '1',
-          name: '',
-          workType: defaultWorkType,
+          name: 'Feature discussion',
+          workType: meetingsWorkType,
           timesheetPath: timesheetPaths[0] || '',
           assignToMe: false
         },
         {
           id: '2',
-          name: 'Feature discussion',
-          workType: meetingsWorkType,
+          name: '',
+          workType: defaultWorkType,
           timesheetPath: timesheetPaths[0] || '',
           assignToMe: false
         }

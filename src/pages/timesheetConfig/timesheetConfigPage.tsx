@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +41,15 @@ const TimesheetManager = () => {
   const { timesheets } = useAppSelector(state => state.timesheet);
   const { workTypes } = useAppSelector(state => state.workTypes);
   const { isDarkMode } = useAppSelector(state => state.theme);
+
+  // Apply dark mode to configuration page
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   const handleSaveTimesheet = (entries: TimesheetEntry[]) => {
     const newTimesheets: Timesheet[] = entries.map((entry, index) => ({
@@ -135,7 +144,7 @@ const TimesheetManager = () => {
                   value={defaultWorkType?.id.toString() || ""}
                   onValueChange={handleSetDefaultWorkType}
                 >
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-40">
                     <SelectValue placeholder="Select default work type" />
                   </SelectTrigger>
                   <SelectContent>
