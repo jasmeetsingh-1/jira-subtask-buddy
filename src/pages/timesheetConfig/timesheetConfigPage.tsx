@@ -95,7 +95,7 @@ const TimesheetManager = () => {
   const defaultWorkType = workTypes.find(wt => wt.isDefault);
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/95 dark:from-background dark:to-background/95 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">

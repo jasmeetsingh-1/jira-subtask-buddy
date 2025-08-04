@@ -206,7 +206,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-surface">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/95 dark:from-background dark:to-background/95">
       {/* Header */}
       <header className="bg-background border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -238,8 +238,8 @@ const Dashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Create Subtasks</h1>
-            <p className="text-muted-foreground">Add subtasks to your Jira tickets</p>
+            <h1 className="text-3xl font-bold text-foreground dark:text-white">Create Subtasks</h1>
+            <p className="text-muted-foreground dark:text-gray-300">Add subtasks to your Jira tickets</p>
           </div>
 
           {/* Ticket Number */}
