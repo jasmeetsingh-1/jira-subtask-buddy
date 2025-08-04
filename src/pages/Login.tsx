@@ -11,8 +11,8 @@ import { authActions } from '@/store/store';
 import { loginToJira, getUserDetails } from '../api/jiraLogin';
 
 const Login = () => {
-  const [username, setUsername] = useState("jasmeet.singh1");
-  const [password, setPassword] = useState("Jirapassword@123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();

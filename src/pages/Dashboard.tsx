@@ -90,7 +90,6 @@ const Dashboard = () => {
 
   const findMeetingTimesheet = () => {
     const timesheetPath = timesheetPaths.find((item)=> item.includes("Meeting"));
-    console.log("timesheetPath", timesheetPath);
     return timesheetPath;
   }
 

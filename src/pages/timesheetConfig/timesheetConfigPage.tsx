@@ -203,10 +203,14 @@ const TimesheetManager = () => {
                     {timesheets.map((timesheet) => (
                       <TableRow key={timesheet.id}>
                         <TableCell className="font-medium">{timesheet.title}</TableCell>
-                        <TableCell>
+                        <TableCell className="w-full">
                           <div className="space-y-1">
                             {timesheet.entries.map((entry) => (
-                              <div key={entry.id} className="text-xs font-mono text-muted-foreground break-all">
+                              <div
+                                key={entry.id}
+                                className="text-xs font-mono text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap"
+                                title={entry.path} // optional: full text on hover
+                              >
                                 {entry.path}
                               </div>
                             ))}
