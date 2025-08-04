@@ -132,7 +132,7 @@ const TimesheetManager = () => {
                   value={defaultWorkType?.id.toString() || ""}
                   onValueChange={handleSetDefaultWorkType}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-48">
                     <SelectValue placeholder="Select default work type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -141,7 +141,7 @@ const TimesheetManager = () => {
                         <div className="flex items-center gap-2">
                           <span>{workType.name}</span>
                           {workType.isDefault && (
-                            <Star className="h-3 w-3 text-primary fill-current" />
+                            <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded">Default</span>
                           )}
                         </div>
                       </SelectItem>

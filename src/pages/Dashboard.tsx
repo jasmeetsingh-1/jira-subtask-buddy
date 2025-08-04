@@ -58,9 +58,13 @@ const Dashboard = () => {
     }
   }, [navigate, isLoggedIn, authToken, timesheets, workTypeConfigs]);
 
+  // Track last selected work type for new subtasks
+  const [lastSelectedWorkType, setLastSelectedWorkType] = useState<string>("");
+
   // Initialize first subtask when data is loaded
   useEffect(() => {
     if (subtasks.length === 0 && workTypes.length > 0 && timesheetPaths.length > 0 && defaultWorkType) {
+      const meetingsWorkType = workTypes.find(type => type.toLowerCase().includes('meeting')) || defaultWorkType;
       const initialSubtasks: SubtaskData[] = [
         {
           id: '1',
@@ -71,13 +75,14 @@ const Dashboard = () => {
         },
         {
           id: '2',
-          name: 'feature meeting',
-          workType: workTypes.find(type => type.toLowerCase().includes('meeting')) || defaultWorkType,
+          name: 'Feature discussion',
+          workType: meetingsWorkType,
           timesheetPath: timesheetPaths[0] || '',
           assignToMe: false
         }
       ];
       setSubtasks(initialSubtasks);
+      setLastSelectedWorkType(defaultWorkType);
     }
   }, [workTypes, timesheetPaths, defaultWorkType]);
 
@@ -101,7 +106,7 @@ const Dashboard = () => {
     const newSubtask: SubtaskData = {
       id: Date.now().toString(),
       name: '',
-      workType: lastSubtask?.workType || defaultWorkType,
+      workType: lastSelectedWorkType || lastSubtask?.workType || defaultWorkType,
       timesheetPath: lastSubtask?.timesheetPath || '',
       assignToMe: false
     };
@@ -122,6 +127,11 @@ const Dashboard = () => {
         // Auto-select work type when timesheet path changes
         if (field === 'timesheetPath' && typeof value === 'string') {
           updatedSubtask.workType = getWorkTypeFromPath(value);
+        }
+        
+        // Track last selected work type for future subtasks
+        if (field === 'workType' && typeof value === 'string') {
+          setLastSelectedWorkType(value);
         }
         
         return updatedSubtask;
@@ -234,30 +244,29 @@ const Dashboard = () => {
 
           {/* Ticket Number */}
           <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Ticket Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label htmlFor="ticket">Ticket Number</Label>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-4">
+                <CardTitle className="shrink-0">Ticket Information</CardTitle>
                 <Input
                   id="ticket"
                   placeholder="e.g., PROJ-123"
                   value={ticketNumber}
                   onChange={(e) => setTicketNumber(e.target.value)}
+                  className="max-w-xs"
                 />
               </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-sm text-muted-foreground">
+                Enter the main parent ticket under which you want to create subtasks
+              </p>
             </CardContent>
           </Card>
 
           {/* Subtasks */}
           <Card className="shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle>Subtasks</CardTitle>
-              <Button onClick={addSubtask} size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Subtask
-              </Button>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -346,6 +355,12 @@ const Dashboard = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="flex justify-center mt-4">
+                <Button onClick={addSubtask} size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Subtask
+                </Button>
               </div>
             </CardContent>
           </Card>
