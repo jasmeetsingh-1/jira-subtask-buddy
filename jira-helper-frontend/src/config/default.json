@@ -1,5 +1,6 @@
 {
     "secretKey": "a9$J#vP1!rU@Z&k8*Xq3^t0L$M%eB7Wc",
     "jiraBaseUrl": "https://jira.grazitti.com",
-    "backend": "http://localhost:8081"
+    // "backend": "http://localhost:8081"
+    "backend": "https://jira-subtask.onrender.com"
 }
