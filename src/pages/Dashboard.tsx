@@ -36,7 +36,7 @@ const Dashboard = () => {
   const { workTypes: workTypeConfigs } = useAppSelector(state => state.workTypes);
   
   const [workTypes, setWorkTypes] = useState<string[]>([]);
-  const [timesheetPaths, setTimesheetPaths] = useState([]);
+  const [timesheetPaths, setTimesheetPaths] = useState<Array<{label: string, path: string}>>([]);
   const [defaultWorkType, setDefaultWorkType] = useState<string>("");
 
   useEffect(() => {
@@ -47,8 +47,11 @@ const Dashboard = () => {
 
     // Load configured timesheets and work types from Redux store
     console.log("time sheets >>>>>", timesheets);
-    const paths = timesheets.flatMap(ts => ts.entries.map(entry => entry.path));
-    setTimesheetPaths(paths);
+    const pathsWithLabels = timesheets.flatMap(ts => ts.entries.map(entry => ({
+      label: entry.label,
+      path: entry.path
+    })));
+    setTimesheetPaths(pathsWithLabels);
 
     const types = workTypeConfigs.map(wt => wt.name);
     setWorkTypes(types);
@@ -89,21 +92,24 @@ const Dashboard = () => {
   }, [workTypes, timesheetPaths, defaultWorkType]);
 
   const findMeetingTimesheet = () => {
-    const timesheetPath = timesheetPaths.find((item)=> item.includes("Meeting"));
-    return timesheetPath;
+    const timesheetItem = timesheetPaths.find((item) => item.label.toLowerCase().includes("meeting"));
+    return timesheetItem?.path || '';
   }
 
   // Auto-select work type based on timesheet path
-  const getWorkTypeFromPath = (path: string): string => {
-    const lowercasePath = path.toLowerCase();
-    if (lowercasePath.includes('development')) {
+  const getWorkTypeFromPath = (selectedPath: string): string => {
+    const selectedItem = timesheetPaths.find(item => item.path === selectedPath);
+    if (!selectedItem) return defaultWorkType;
+    
+    const lowercaseLabel = selectedItem.label.toLowerCase();
+    if (lowercaseLabel.includes('development')) {
       return workTypes.find(type => type.toLowerCase() === 'development') || defaultWorkType;
     }
-    if (lowercasePath.includes('bugfixing')) {
+    if (lowercaseLabel.includes('bugfixing')) {
       return workTypes.find(type => type.toLowerCase() === 'bug fixing') || defaultWorkType;
     }
-    if (lowercasePath.includes('meetings')) {
-      return workTypes.find(type => type.toLowerCase() === 'Meetings') || defaultWorkType;
+    if (lowercaseLabel.includes('meeting')) {
+      return workTypes.find(type => type.toLowerCase() === 'meetings') || defaultWorkType;
     }
     return defaultWorkType;
   };
@@ -199,12 +205,20 @@ const Dashboard = () => {
 
     // TODO: Submit to Jira API
     setCreatedSubtasksCount(validSubtasks.length);
-    createSubtask();
+    createSubtask(validSubtasks);
     setShowSuccessModal(true);
   };
 
-  const createSubtask = () => {
-    console.log("subtask to make >>>>", subtasks);
+  const createSubtask = (validSubtasks: SubtaskData[]) => {
+    const subtaskArray = validSubtasks.map(subtask => {
+      const workTypeConfig = workTypeConfigs.find(wt => wt.name === subtask.workType);
+      return {
+        summary: subtask.name,
+        workTypeId: workTypeConfig?.value || '',
+        timesheetPath: subtask.timesheetPath
+      };
+    });
+    console.log("subtask array to create >>>>", subtaskArray);
   }
 
   const handleLogout = () => {
@@ -222,11 +236,11 @@ const Dashboard = () => {
               <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
                 <span className="text-primary-foreground font-bold">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm">
-                      {userData.displayName?.charAt(0)}
+                      {(userData as any)?.displayName?.charAt(0) || 'U'}
                     </div>
                 </span>
               </div>
-              <span className="ml-3 text-xl text-foreground">Welcome, <span className="font-bold">{userData.displayName}</span></span>
+              <span className="ml-3 text-xl text-foreground">Welcome, <span className="font-bold">{(userData as any)?.displayName || 'User'}</span></span>
             </div>
             <div className="flex items-center space-x-4">
               {/* <span className="text-sm text-muted-foreground"></span> */}
@@ -315,9 +329,9 @@ const Dashboard = () => {
                               <SelectValue placeholder="Select timesheet path" />
                             </SelectTrigger>
                             <SelectContent>
-                              {timesheetPaths.map((path) => (
-                                <SelectItem key={path} value={path}>
-                                  {path}
+                              {timesheetPaths.map((item) => (
+                                <SelectItem key={item.path} value={item.path}>
+                                  {item.label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
