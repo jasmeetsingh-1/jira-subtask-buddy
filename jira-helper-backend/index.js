@@ -1,4 +1,3 @@
-// index.js
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -102,37 +101,91 @@ app.post('/api/user-info', async (req, res) => {
 
 // 📌 Create sub-task route
 app.post('/api/create-subtask', async (req, res) => {
-  const { token, parentKey, summary, workTypeId, timesheetPath, description = "" } = req.body;
-  const { authorization } = req.headers;
-  console.log("Creating sub-task with data:", req.headers);
+  const authHeader = req.headers.authorization;
+  const secretKey = config.secretKey;
 
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing or invalid Authorization header',
+    });
+  }
   try {
-    const response = await axios.post(`${JIRA_BASE_URL}/rest/api/2/issue`, {
-      fields: {
-        project: { key: parentKey.split('-')[0] }, // e.g. 'SU'
-        parent: { key: parentKey },               // e.g. 'SU-68200'
-        summary,
-        description: description,
-        issuetype: { name: 'Sub-task' },
-        customfield_14700: { id: workTypeId },     // Work Type
-        customfield_13738: timesheetPath || ''     // Timesheet Path
-      },
-    }, {
-      headers: {
-        Authorization: `Basic ${authorization}`, // Use Basic token (not Bearer)
-        'Content-Type': 'application/json'
-      }
+    const encryptedToken = authHeader.split(' ')[1];
+    const bytes = CryptoJS.AES.decrypt(encryptedToken, secretKey);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+
+    if (!decrypted) {
+      throw new Error("Failed to decrypt, possibly invalid key or token");
+    }
+
+    const decoded = Buffer.from(decrypted, 'base64').toString();
+    const [username, apiToken] = decoded.split(':');
+    const authToken = Buffer.from(`${username}:${apiToken}`).toString('base64');
+
+    const subTasks = req.body;
+
+    if (!Array.isArray(subTasks)) {
+      return res.status(400).json({
+        success: false,
+        message: "Expected request body to be an array of subtasks",
+      });
+    }
+
+    const requests = subTasks.map((subTask, index) => {
+      console.log(subTask);
+      return axios.post(`${JIRA_BASE_URL}/rest/api/2/issue`, {
+        fields: {
+          project: { key: subTask.parentKey.split('-')[0] },
+          parent: { key: subTask.parentKey },
+          summary: subTask.summary,
+          description: subTask.description || "",
+          issuetype: { name: 'Sub-task' },
+          customfield_14700: { id: subTask.workTypeId },
+          customfield_13738: subTask.timesheetPath || '',
+        }
+      }, {
+        headers: {
+          Authorization: `Basic ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      }).then(response => ({
+        status: 'fulfilled',
+        data: response.data,
+        index
+      })).catch(error => ({
+        status: 'rejected',
+        error: error?.response?.data || error.message,
+        index,
+        input: subTask
+      }));
     });
 
-    console.log("Sub-task created successfully >>>", response.data);
+    const results = await Promise.all(requests);
 
-    res.json({ success: true, issue: response.data });
+    const successful = results.filter(r => r.status === 'fulfilled');
+    const failed = results.filter(r => r.status === 'rejected');
+
+    res.status(200).json({
+      success: true,
+      message: "Sub-task creation completed.",
+      total: results.length,
+      successfulCount: successful.length,
+      failedCount: failed.length,
+      failedRequests: failed.map(f => ({
+        index: f.index + 1,
+        reason: f.error,
+        parameters: f.input
+      })),
+      successfulResults: successful.map(s => s.data)
+    });
+
   } catch (err) {
-    console.error("Sub-task creation error >>>", err.response?.data || err.message);
+    console.error("Token decryption or setup error >>>", err);
     res.status(500).json({
       success: false,
-      message: 'Failed to create sub-task',
-      error: err.response?.data || err.message
+      message: 'Authentication or setup failed',
+      error: err.message
     });
   }
 });
