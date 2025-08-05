@@ -12,6 +12,7 @@ import { Settings, Plus, Trash2, User, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { authActions } from '@/store/store';
+import config from "../config/default.json";
 
 interface SubtaskData {
   id: string;
@@ -414,7 +415,7 @@ const Dashboard = () => {
                 className="font-mono bg-primary text-primary-foreground px-3 py-1 rounded hover:bg-primary/90 transition-colors cursor-pointer underline"
                 onClick={() => {
                   // TODO: Open Jira ticket in new tab
-                  window.open(`https://your-jira-instance.atlassian.net/browse/${ticketNumber}`, '_blank');
+                  window.open(`${config.jiraBaseUrl}/browse/${ticketNumber}`, '_blank');
                 }}
               >
                 {ticketNumber}
