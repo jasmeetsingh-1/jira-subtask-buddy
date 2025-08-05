@@ -3,54 +3,87 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const config = require('./config.json'); // Load secret key from config
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+const CryptoJS = require('crypto-js');
 
-const JIRA_BASE_URL = 'https://jira.grazitti.com';
+const JIRA_BASE_URL = config.jiraBaseUrl
 
 // 🔐 Login check route
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  const token = Buffer.from(`${username}:${password}`).toString('base64');
+  const authHeader = req.headers.authorization;
+  const secretKey = config.secretKey;
+
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing or invalid Authorization header',
+    });
+  }
+  const encryptedToken = authHeader.split(' ')[1];
 
   try {
-    // Call /myself to validate credentials
+    const bytes = CryptoJS.AES.decrypt(encryptedToken, secretKey);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+
+    if (!decrypted) {
+      throw new Error("Failed to decrypt, possibly invalid key or token");
+    }
+    const decoded = Buffer.from(decrypted, 'base64').toString();
+    const [username, apiToken] = decoded.split(':');
+    const authToken = Buffer.from(`${username}:${apiToken}`).toString('base64');
+
     await axios.get(`${JIRA_BASE_URL}/rest/api/2/myself`, {
       headers: {
-        Authorization: `Basic ${token}`,
+        Authorization: `Basic ${authToken}`,
       },
     });
 
-    // Only return the token if valid
     res.json({
       success: true,
-      token: token,
+      token: encryptedToken,
     });
   } catch (err) {
-    console.error("Login failed >>>", err.message);
+    console.error('Login failed >>>', err.message);
     res.status(401).json({
       success: false,
-      message: 'Invalid username or password',
+      message: 'Invalid credentials or decryption error',
     });
   }
 });
 
 
-app.post('/api/user-info', async (req, res) => {
-  const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password are required' });
+
+app.post('/api/user-info', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const secretKey = config.secretKey;;
+
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing or invalid Authorization header',
+    });
   }
+  const encryptedToken = authHeader.split(' ')[1];
 
   try {
-    const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+    const bytes = CryptoJS.AES.decrypt(encryptedToken, secretKey);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
 
-    const response = await axios.get('https://jira.grazitti.com/rest/api/2/myself', {
+    if (!decrypted) {
+      throw new Error("Failed to decrypt Authorization header");
+    }
+    const decoded = Buffer.from(decrypted, 'base64').toString();
+    const [username, apiToken] = decoded.split(':');
+    const jiraAuth = Buffer.from(`${username}:${apiToken}`).toString('base64');
+
+    const response = await axios.get(`${JIRA_BASE_URL}/rest/api/2/myself`, {
       headers: {
-        Authorization: authHeader,
+        Authorization: `Basic ${jiraAuth}`,
         Accept: 'application/json',
       },
     });
@@ -70,6 +103,8 @@ app.post('/api/user-info', async (req, res) => {
 // 📌 Create sub-task route
 app.post('/api/create-subtask', async (req, res) => {
   const { token, parentKey, summary, workTypeId, timesheetPath, description = "" } = req.body;
+  const { authorization } = req.headers;
+  console.log("Creating sub-task with data:", req.headers);
 
   try {
     const response = await axios.post(`${JIRA_BASE_URL}/rest/api/2/issue`, {
@@ -84,10 +119,12 @@ app.post('/api/create-subtask', async (req, res) => {
       },
     }, {
       headers: {
-        Authorization: `Basic ${token}`, // Use Basic token (not Bearer)
+        Authorization: `Basic ${authorization}`, // Use Basic token (not Bearer)
         'Content-Type': 'application/json'
       }
     });
+
+    console.log("Sub-task created successfully >>>", response.data);
 
     res.json({ success: true, issue: response.data });
   } catch (err) {

@@ -1,6 +1,6 @@
 // POST to /api/create-subtask
 const createSubtask = async (token, parentKey, summary) => {
-  const res = await fetch('http://localhost:8081/api/create-subtask', {
+  const res = await fetch(`${config.backend}/api/create-subtask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
