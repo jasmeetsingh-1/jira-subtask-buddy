@@ -134,31 +134,38 @@ app.post('/api/create-subtask', async (req, res) => {
 
     const requests = subTasks.map((subTask, index) => {
       console.log(subTask);
-      return axios.post(`${JIRA_BASE_URL}/rest/api/2/issue`, {
-        fields: {
-          project: { key: subTask.parentKey.split('-')[0] },
-          parent: { key: subTask.parentKey },
-          summary: subTask.summary,
-          description: subTask.description || "",
-          issuetype: { name: 'Sub-task' },
-          customfield_14700: { id: subTask.workTypeId },
-          customfield_13738: subTask.timesheetPath || '',
-        }
-      }, {
-        headers: {
-          Authorization: `Basic ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      }).then(response => ({
-        status: 'fulfilled',
-        data: response.data,
-        index
-      })).catch(error => ({
-        status: 'rejected',
-        error: error?.response?.data || error.message,
-        index,
-        input: subTask
-      }));
+    const fields = {
+      project: { key: subTask.parentKey.split('-')[0] },
+      parent: { key: subTask.parentKey },
+      summary: subTask.summary,
+      description: subTask.description || "",
+      issuetype: { name: 'Sub-task' },
+      customfield_14700: { id: subTask.workTypeId },
+      customfield_13738: subTask.timesheetPath || ''
+    };
+
+    if (subTask.username) {
+      fields.assignee = { name: subTask.username };
+    }
+
+    return axios.post(`${JIRA_BASE_URL}/rest/api/2/issue`, {
+      fields
+    }, {
+      headers: {
+        Authorization: `Basic ${authToken}`,
+        'Content-Type': 'application/json'
+      }
+    }).then(response => ({
+      status: 'fulfilled',
+      data: response.data,
+      index
+    })).catch(error => ({
+      status: 'rejected',
+      error: error?.response?.data || error.message,
+      index,
+      input: subTask
+    }));
+
     });
 
     const results = await Promise.all(requests);

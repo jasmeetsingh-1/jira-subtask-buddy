@@ -220,7 +220,7 @@ const Dashboard = () => {
         workTypeId: workTypeConfig?.value || '',
         timesheetPath: subtask.timesheetPath
       };
-      if (task) {
+      if (subtask.assignToMe) {
         task.username = userData.name ;
       }
 
