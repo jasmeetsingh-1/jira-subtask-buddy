@@ -213,7 +213,7 @@ const LogTime = () => {
                         <h2 className="text-lg font-semibold text-foreground">{issue.parent.summary}</h2>
                         <a
                           className="text-sm text-primary underline underline-offset-4"
-                          href={`https://google.com/${issue.parent.id}`}
+                          href={`https://jira.grazitti.com/browse/${issue.parent.id}`}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -242,11 +242,11 @@ const LogTime = () => {
                                 <TableCell>
                                   <a
                                     className="text-primary underline underline-offset-4 font-mono"
-                                    href={`https://google.com/${st.id}`}
+                                    href={`https://jira.grazitti.com/browse/${st.key}`}
                                     target="_blank"
                                     rel="noreferrer"
                                   >
-                                    {st.id}
+                                    {st.key}
                                   </a>
                                 </TableCell>
                                 <TableCell className="text-foreground">{st.summary}</TableCell>

@@ -8,8 +8,9 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 const CryptoJS = require('crypto-js');
+const JIRA_BASE_URL = config.jiraBaseUrl;
 
-const JIRA_BASE_URL = config.jiraBaseUrl
+const userTicketsRoute = require('./routes/userTickets'); //new rputes
 
 // 🔐 Login check route
 app.post('/api/login', async (req, res) => {
@@ -246,7 +247,9 @@ app.post('/api/tickets', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
+app.use('/userTickets', userTicketsRoute); // ✅ This mounts /userTickets/getAllTicket
+
+const PORT = process.env.PORT || 8081;
 app.listen(PORT, () => {
   console.log(`✅ Backend server running at http://localhost:${PORT}`);
 });
