@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 interface ApiSubtask {
   id: string;
@@ -34,6 +35,7 @@ interface ApiResponse {
 interface LogState {
   minutes: number; // store minutes; display as "xh ym"
   description: string;
+  inputText?: string; // temp user input for time field
 }
 
 const statusOrder = (status: string) => {
@@ -51,6 +53,27 @@ const formatMinutes = (mins: number) => {
   if (m === 0) return `${h}h`;
   return `${h}h ${m}m`;
 };
+
+// Parse user input like "1h 30m", "90m", "1.5h", "90"
+const parseTimeInput = (input: string): number => {
+  if (!input) return 0;
+  const str = input.trim().toLowerCase().replace(/\s+/g, " ");
+  // direct minutes number
+  if (/^\d+$/.test(str)) return parseInt(str, 10);
+  // 1.5h or 1.25h forms
+  const mHourDecimal = str.match(/^(\d+(?:\.\d+)?)h$/);
+  if (mHourDecimal) return Math.round(parseFloat(mHourDecimal[1]) * 60);
+  // h and m mixed, in any order
+  let total = 0;
+  const hMatch = str.match(/(\d+(?:\.\d+)?)\s*h/);
+  const mMatch = str.match(/(\d+)\s*m/);
+  if (hMatch) total += Math.round(parseFloat(hMatch[1]) * 60);
+  if (mMatch) total += parseInt(mMatch[1], 10);
+  if (total > 0) return total;
+  return 0;
+};
+
+const minutesToInputString = (mins: number): string => formatMinutes(mins);
 
 const LogTime = () => {
   const navigate = useNavigate();
@@ -91,12 +114,27 @@ const LogTime = () => {
   const adjustTime = (subtaskId: string, deltaMin: number) => {
     setLogMap((prev) => {
       const current = prev[subtaskId] || { minutes: 0, description: "" };
-      const minutes = Math.max(0, current.minutes + deltaMin);
-      return { ...prev, [subtaskId]: { ...current, minutes } };
+      const minutes = Math.max(0, (current.minutes || 0) + deltaMin);
+      return { ...prev, [subtaskId]: { ...current, minutes, inputText: undefined } };
     });
   };
   const setDescription = (subtaskId: string, description: string) => {
     setLogMap((prev) => ({ ...prev, [subtaskId]: { ...(prev[subtaskId] || { minutes: 0, description: "" }), description } }));
+  };
+  const setTimeText = (subtaskId: string, inputText: string) => {
+    setLogMap((prev) => {
+      const current = prev[subtaskId] || { minutes: 0, description: "" };
+      return { ...prev, [subtaskId]: { ...current, inputText } };
+    });
+  };
+  const commitTimeText = (subtaskId: string) => {
+    setLogMap((prev) => {
+      const current = prev[subtaskId] || { minutes: 0, description: "" };
+      const parsed = parseTimeInput(current.inputText || "");
+      const minutes = Math.max(0, isNaN(parsed) ? current.minutes || 0 : parsed);
+      const inputText = minutesToInputString(minutes);
+      return { ...prev, [subtaskId]: { ...current, minutes, inputText } };
+    });
   };
   const resetAll = () => setLogMap({});
 
@@ -167,73 +205,82 @@ const LogTime = () => {
 
           {!isLoading && !isError && (
             <div className="space-y-6">
-              {(data?.issues || []).map((issue) => (
-                <section key={issue.parent.id} className="rounded-md border bg-card">
-                  <div className="p-4 border-b flex items-center justify-between">
-                    <div>
-                      <h2 className="text-lg font-semibold text-foreground">{issue.parent.summary}</h2>
-                      <a
-                        className="text-sm text-primary underline underline-offset-4"
-                        href={`https://google.com/${issue.parent.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {issue.parent.key}
-                      </a>
+              <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-6">
+                {(data?.issues || []).map((issue) => (
+                  <section key={issue.parent.id} className="rounded-md border bg-card">
+                    <div className="p-4 border-b flex items-center justify-between">
+                      <div>
+                        <h2 className="text-lg font-semibold text-foreground">{issue.parent.summary}</h2>
+                        <a
+                          className="text-sm text-primary underline underline-offset-4"
+                          href={`https://google.com/${issue.parent.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {issue.parent.key}
+                        </a>
+                      </div>
+                      <div className="text-sm text-muted-foreground">{(issue.subtasks || []).length} subtasks</div>
                     </div>
-                    <div className="text-sm text-muted-foreground">{(issue.subtasks || []).length} subtasks</div>
-                  </div>
 
-                  <div className="p-4 overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[120px]">Subtask</TableHead>
-                          <TableHead>Summary</TableHead>
-                          <TableHead className="min-w-[140px]">Status</TableHead>
-                          <TableHead className="min-w-[180px]">Log Time</TableHead>
-                          <TableHead className="min-w-[280px]">Description</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {[...(issue.subtasks || [])]
-                          .sort((a, b) => statusOrder(a.status) - statusOrder(b.status))
-                          .map((st) => (
-                            <TableRow key={st.id}>
-                              <TableCell>
-                                <a
-                                  className="text-primary underline underline-offset-4 font-mono"
-                                  href={`https://google.com/${st.id}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  {st.id}
-                                </a>
-                              </TableCell>
-                              <TableCell className="text-foreground">{st.summary}</TableCell>
-                              <TableCell>{renderStatus(st.status)}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button variant="outline" size="sm" onClick={() => adjustTime(st.id, -15)}>-15m</Button>
-                                  <div className="min-w-[64px] text-center font-medium">{formatMinutes(logMap[st.id]?.minutes || 0)}</div>
-                                  <Button variant="outline" size="sm" onClick={() => adjustTime(st.id, 15)}>+15m</Button>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Textarea
-                                  placeholder="Add description for this time log"
-                                  value={logMap[st.id]?.description || ""}
-                                  onChange={(e) => setDescription(st.id, e.target.value)}
-                                  className="min-h-10"
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </section>
-              ))}
+                    <div className="p-4 overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[120px]">Subtask</TableHead>
+                            <TableHead>Summary</TableHead>
+                            <TableHead className="min-w-[140px]">Status</TableHead>
+                            <TableHead className="min-w-[180px]">Log Time</TableHead>
+                            <TableHead className="min-w-[280px]">Description</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {[...(issue.subtasks || [])]
+                            .sort((a, b) => statusOrder(a.status) - statusOrder(b.status))
+                            .map((st) => (
+                              <TableRow key={st.id}>
+                                <TableCell>
+                                  <a
+                                    className="text-primary underline underline-offset-4 font-mono"
+                                    href={`https://google.com/${st.id}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    {st.id}
+                                  </a>
+                                </TableCell>
+                                <TableCell className="text-foreground">{st.summary}</TableCell>
+                                <TableCell>{renderStatus(st.status)}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => adjustTime(st.id, -15)}>-15m</Button>
+                                    <Input
+                                      className="w-28 text-center"
+                                      placeholder="0m"
+                                      value={logMap[st.id]?.inputText ?? minutesToInputString(logMap[st.id]?.minutes || 0)}
+                                      onChange={(e) => setTimeText(st.id, e.target.value)}
+                                      onBlur={() => commitTimeText(st.id)}
+                                      onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
+                                    />
+                                    <Button variant="outline" size="sm" onClick={() => adjustTime(st.id, 15)}>+15m</Button>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Textarea
+                                    placeholder="Add description for this time log"
+                                    value={logMap[st.id]?.description || ""}
+                                    onChange={(e) => setDescription(st.id, e.target.value)}
+                                    className="min-h-10"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </section>
+                ))}
+              </div>
 
               <footer className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-md border bg-card">
                 <div className="text-sm sm:text-base">
