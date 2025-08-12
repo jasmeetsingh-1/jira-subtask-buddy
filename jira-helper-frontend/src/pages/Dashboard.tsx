@@ -253,11 +253,16 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center space-x-4">
               {/* <span className="text-sm text-muted-foreground"></span> */}
-              <Button variant="outline" size="sm" onClick={()=>{
+              <Button variant="outline" size="sm" onClick={() => {
                 navigate("/configuration")
               }}>
                 <Settings className="w-4 h-4 mr-2" />
                 Configuration
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                navigate("/logTime")
+              }}>
+                Log Time
               </Button>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2"/>
