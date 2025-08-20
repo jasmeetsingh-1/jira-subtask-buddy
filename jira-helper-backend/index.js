@@ -13,7 +13,7 @@ const JIRA_BASE_URL = config.jiraBaseUrl;
 const userTicketsRoute = require('./routes/userTickets'); //new rputes
 
 // 🔐 Login check route
-app.post('/api/login', async (req, res) => {
+app.post('/jiraHelper/login', async (req, res) => {
   const authHeader = req.headers.authorization;
   const secretKey = config.secretKey;
 
@@ -58,7 +58,7 @@ app.post('/api/login', async (req, res) => {
 
 
 
-app.post('/api/user-info', async (req, res) => {
+app.post('/jiraHelper/user-info', async (req, res) => {
   const authHeader = req.headers.authorization;
   const secretKey = config.secretKey;;
 
@@ -101,7 +101,7 @@ app.post('/api/user-info', async (req, res) => {
 
 
 // 📌 Create sub-task route
-app.post('/api/create-subtask', async (req, res) => {
+app.post('/jiraHelper/create-subtask', async (req, res) => {
   const authHeader = req.headers.authorization;
   const secretKey = config.secretKey;
 
@@ -199,7 +199,7 @@ app.post('/api/create-subtask', async (req, res) => {
 });
 
 
-app.post('/api/tickets', async (req, res) => {
+app.post('/jiraHelper/tickets', async (req, res) => {
   const { token } = req.body;
 
   if (!token) {
