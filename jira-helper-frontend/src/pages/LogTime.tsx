@@ -213,7 +213,7 @@ const LogTime = () => {
                         <h2 className="text-lg font-semibold text-foreground">{issue.parent.summary}</h2>
                         <a
                           className="text-sm text-primary underline underline-offset-4"
-                          href={`https://jira.grazitti.com/browse/${issue.parent.id}`}
+                          href={`https://jira.grazitti.com/browse/${issue.parent.key}`}
                           target="_blank"
                           rel="noreferrer"
                         >
