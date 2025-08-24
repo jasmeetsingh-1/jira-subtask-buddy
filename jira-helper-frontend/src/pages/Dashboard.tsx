@@ -8,12 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, Plus, Trash2, User, LogOut } from "lucide-react";
+import { Settings, Plus, Trash2, User, LogOut, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { authActions } from '@/store/store';
 import config from "../config/default.json";
-import { createSubtask } from '../api/jiraSubTask'
+import { createSubtask } from '../api/jiraSubTask';
+import JiraViewer from "@/components/JiraViewer";
 
 interface SubtaskData {
   id: string;
@@ -28,6 +29,7 @@ const Dashboard = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdSubtasksCount, setCreatedSubtasksCount] = useState(0);
   const [subtasks, setSubtasks] = useState<SubtaskData[]>([]);
+  const [viewingTicket, setViewingTicket] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const dispatch = useAppDispatch();
@@ -273,142 +275,165 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Create Subtasks</h1>
-            <p className="text-muted-foreground dark:text-gray-300">Add subtasks to your Jira tickets</p>
-          </div>
+      <main className={`mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-all duration-300 ${viewingTicket ? 'max-w-7xl' : 'max-w-4xl'}`}>
+        <div className={`grid gap-6 ${viewingTicket ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground dark:text-white">Create Subtasks</h1>
+              <p className="text-muted-foreground dark:text-gray-300">Add subtasks to your Jira tickets</p>
+            </div>
 
-          {/* Ticket Number */}
-          <Card className="shadow-card">
-            <CardHeader className="pb-0">
-              <div className="flex items-center justify-between gap-4">
-                <CardTitle className="shrink-0">Ticket Information</CardTitle>
-                <Input
-                  id="ticket"
-                  placeholder="e.g., SU-0000"
-                  value={ticketNumber}
-                  onChange={(e) => setTicketNumber(e.target.value)}
-                  className="max-w-xs"
-                />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-sm text-muted-foreground">
-                Enter the main parent ticket under which you want to create subtasks
-              </p>
-            </CardContent>
-          </Card>
+            {/* Ticket Number */}
+            <Card className="shadow-card">
+              <CardHeader className="pb-0">
+                <div className="flex items-center justify-between gap-4">
+                  <CardTitle className="shrink-0">Ticket Information</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="ticket"
+                      placeholder="e.g., SU-0000"
+                      value={ticketNumber}
+                      onChange={(e) => setTicketNumber(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <Button
+                      onClick={() => setViewingTicket(ticketNumber)}
+                      disabled={!ticketNumber}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View Ticket
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-sm text-muted-foreground">
+                  Enter the main parent ticket under which you want to create subtasks
+                </p>
+              </CardContent>
+            </Card>
 
-          {/* Subtasks */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Subtasks</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2 font-medium">#</th>
-                      <th className="text-left p-2 font-medium">Subtask Name</th>
-                      <th className="text-left p-2 font-medium">Timesheet Path</th>
-                      <th className="text-left p-2 font-medium">Work Type</th>
-                      <th className="text-left p-2 font-medium">Assign to Me</th>
-                      <th className="text-left p-2 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subtasks.map((subtask, index) => (
-                      <tr key={subtask.id} className="border-b hover:bg-muted/50">
-                        <td className="p-2">
-                          <span className="text-sm font-medium">{index + 1}</span>
-                        </td>
-                        <td className="p-2">
-                          <Input
-                            placeholder="Enter subtask name"
-                            value={subtask.name}
-                            onChange={(e) => updateSubtask(subtask.id, 'name', e.target.value)}
-                            className="min-w-[200px]"
-                          />
-                        </td>
-                        <td className="p-2">
-                          <Select
-                            value={subtask.timesheetPath}
-                            onValueChange={(value) => updateSubtask(subtask.id, 'timesheetPath', value)}
-                          >
-                            <SelectTrigger className="min-w-[150px]">
-                              <SelectValue placeholder="Select timesheet path" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {timesheetPaths.map((item) => (
-                                <SelectItem key={item.path} value={item.path}>
-                                  {item.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="p-2">
-                          <Select
-                            value={subtask.workType}
-                            onValueChange={(value) => updateSubtask(subtask.id, 'workType', value)}
-                          >
-                            <SelectTrigger className="min-w-[150px]">
-                              <SelectValue placeholder="Select work type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {workTypes.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="p-2">
-                          <div className="flex items-center justify-center">
-                            <Checkbox
-                              id={`assign-${subtask.id}`}
-                              checked={subtask.assignToMe}
-                              onCheckedChange={(checked) => 
-                                updateSubtask(subtask.id, 'assignToMe', checked as boolean)
-                              }
-                            />
-                          </div>
-                        </td>
-                        <td className="p-2">
-                          {subtasks.length > 1 && (
-                            <Button
-                              onClick={() => removeSubtask(subtask.id)}
-                              variant="outline"
-                              size="sm"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </td>
+            {/* Subtasks */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle>Subtasks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2 font-medium">#</th>
+                        <th className="text-left p-2 font-medium">Subtask Name</th>
+                        <th className="text-left p-2 font-medium">Timesheet Path</th>
+                        <th className="text-left p-2 font-medium">Work Type</th>
+                        <th className="text-left p-2 font-medium">Assign to Me</th>
+                        <th className="text-left p-2 font-medium">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex justify-end mt-4">
-                <Button onClick={addSubtask} size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Subtask
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {subtasks.map((subtask, index) => (
+                        <tr key={subtask.id} className="border-b hover:bg-muted/50">
+                          <td className="p-2">
+                            <span className="text-sm font-medium">{index + 1}</span>
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              placeholder="Enter subtask name"
+                              value={subtask.name}
+                              onChange={(e) => updateSubtask(subtask.id, 'name', e.target.value)}
+                              className="min-w-[200px]"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={subtask.timesheetPath}
+                              onValueChange={(value) => updateSubtask(subtask.id, 'timesheetPath', value)}
+                            >
+                              <SelectTrigger className="min-w-[150px]">
+                                <SelectValue placeholder="Select timesheet path" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {timesheetPaths.map((item) => (
+                                  <SelectItem key={item.path} value={item.path}>
+                                    {item.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={subtask.workType}
+                              onValueChange={(value) => updateSubtask(subtask.id, 'workType', value)}
+                            >
+                              <SelectTrigger className="min-w-[150px]">
+                                <SelectValue placeholder="Select work type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {workTypes.map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {type}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            <div className="flex items-center justify-center">
+                              <Checkbox
+                                id={`assign-${subtask.id}`}
+                                checked={subtask.assignToMe}
+                                onCheckedChange={(checked) => 
+                                  updateSubtask(subtask.id, 'assignToMe', checked as boolean)
+                                }
+                              />
+                            </div>
+                          </td>
+                          <td className="p-2">
+                            {subtasks.length > 1 && (
+                              <Button
+                                onClick={() => removeSubtask(subtask.id)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <Button onClick={addSubtask} size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Subtask
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Submit Button */}
-          <div className="flex justify-end">
-            <Button onClick={handleSubmit} size="lg">
-              Create Subtasks
-            </Button>
+            {/* Submit Button */}
+            <div className="flex justify-end">
+              <Button onClick={handleSubmit} size="lg">
+                Create Subtasks
+              </Button>
+            </div>
           </div>
+
+          {/* Jira Viewer */}
+          {viewingTicket && (
+            <div className="animate-slide-in-right">
+              <JiraViewer 
+                ticketId={viewingTicket} 
+                onClose={() => setViewingTicket(null)} 
+              />
+            </div>
+          )}
         </div>
       </main>
 
