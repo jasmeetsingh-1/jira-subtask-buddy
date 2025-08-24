@@ -281,7 +281,7 @@ const LogTime = () => {
                   </div>
                   <div className="flex items-center gap-2 min-w-[200px]">
                     <Progress 
-                      value={(totalMinutes / 480) * 100} 
+                      value={Math.min((totalMinutes / 480) * 100, 100)} 
                       className={`h-3 transition-all duration-300 ${totalMinutes >= 480 ? 'animate-bounce' : ''}`}
                     />
                     <span className="text-xs text-muted-foreground whitespace-nowrap">/ 8h</span>
