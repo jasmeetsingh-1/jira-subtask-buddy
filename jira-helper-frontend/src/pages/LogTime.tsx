@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
+import config from "../config/default.json";
+import {getAllTickets} from "../api/jiraLogTime.js";
+
 interface ApiSubtask {
   id: string;
   key: string;
@@ -95,12 +98,13 @@ const LogTime = () => {
     queryKey: ["userTickets", username],
     enabled: Boolean(username) && Boolean(authToken),
     queryFn: async () => {
+      console.log(config.jSessionId)
       const token = authToken?.startsWith("Basic ") ? authToken : `Basic ${authToken}`;
       const res = await fetch("http://localhost:8081/userTickets/getAllTickets", {
         method: "POST",
         headers: {
-          Authorization: token,
           "Content-Type": "application/json",
+          'x-jsessionid' : config.jSessionId,
         },
         body: JSON.stringify({ userName: username }),
       });

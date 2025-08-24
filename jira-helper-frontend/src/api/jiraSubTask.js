@@ -5,7 +5,8 @@ const createSubtask = async (token ,subtaskArray) => {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
-      'Authorization': `Basic ${token}`
+      // 'Authorization': `Basic ${token}`
+      'x-jsessionid' : config.jSessionId
      },
     body: JSON.stringify(subtaskArray)
   });

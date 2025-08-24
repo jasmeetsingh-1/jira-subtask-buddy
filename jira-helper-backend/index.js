@@ -55,7 +55,85 @@ app.post('/jiraHelper/login', async (req, res) => {
   }
 });
 
+const decrypt = (cipher) => {
+  const bytes = CryptoJS.AES.decrypt(cipher, secretKey);
+  return bytes.toString(CryptoJS.enc.Utf8);
+};
 
+app.post('/jiraHelper/get-session', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Basic ")) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing or invalid Authorization header"
+      });
+    }
+
+    // 🔑 Decrypt the encrypted token from client
+    const encryptedToken = authHeader.split(" ")[1];
+    const decrypted = decrypt(encryptedToken);
+
+    if (!decrypted) {
+      throw new Error("Failed to decrypt credentials");
+    }
+
+    // decrypted should be "username:apiToken"
+    const decoded = Buffer.from(decrypted, "base64").toString();
+    const [username, apiToken] = decoded.split(":");
+
+    if (!username || !apiToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid decrypted credentials format"
+      });
+    }
+
+    // Encode for Basic Auth
+    const authToken = Buffer.from(`${username}:${apiToken}`).toString("base64");
+
+    // Call Jira to start a session
+    const response = await axios.post(
+      `${JIRA_BASE_URL}/rest/auth/1/session`,
+      {}, // body not needed when using Basic Auth
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${authToken}`
+        }
+      }
+    );
+
+    // Extract JSESSIONID from cookie
+    const cookies = response.headers["set-cookie"] || [];
+    const jsessionId = cookies
+      .map(c => c.split(";")[0])
+      .find(c => c.startsWith("JSESSIONID="))
+      ?.replace("JSESSIONID=", "");
+
+    if (!jsessionId) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to retrieve JSESSIONID from Jira response"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Session created successfully",
+      jsessionId,
+      rawResponse: response.data // optional
+    });
+
+  } catch (err) {
+    console.error("Jira login failed >>>", err?.response?.data || err.message);
+    res.status(401).json({
+      success: false,
+      message: "Authentication failed",
+      error: err?.response?.data || err.message
+    });
+  }
+});
 
 
 app.post('/jiraHelper/user-info', async (req, res) => {
@@ -101,28 +179,113 @@ app.post('/jiraHelper/user-info', async (req, res) => {
 
 
 // 📌 Create sub-task route
+// app.post('/jiraHelper/create-subtask', async (req, res) => {
+//   const authHeader = req.headers.authorization;
+//   const secretKey = config.secretKey;
+
+//   if (!authHeader || !authHeader.startsWith('Basic ')) {
+//     return res.status(400).json({
+//       success: false,
+//       message: 'Missing or invalid Authorization header',
+//     });
+//   }
+//   try {
+//     const encryptedToken = authHeader.split(' ')[1];
+//     const bytes = CryptoJS.AES.decrypt(encryptedToken, secretKey);
+//     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+
+//     if (!decrypted) {
+//       throw new Error("Failed to decrypt, possibly invalid key or token");
+//     }
+
+//     const decoded = Buffer.from(decrypted, 'base64').toString();
+//     const [username, apiToken] = decoded.split(':');
+//     const authToken = Buffer.from(`${username}:${apiToken}`).toString('base64');
+
+//     const subTasks = req.body;
+
+//     if (!Array.isArray(subTasks)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Expected request body to be an array of subtasks",
+//       });
+//     }
+
+//     const requests = subTasks.map((subTask, index) => {
+//       console.log(subTask);
+//     const fields = {
+//       project: { key: subTask.parentKey.split('-')[0] },
+//       parent: { key: subTask.parentKey },
+//       summary: subTask.summary,
+//       description: subTask.description || "",
+//       issuetype: { name: 'Sub-task' },
+//       customfield_14700: { id: subTask.workTypeId },
+//       customfield_13738: subTask.timesheetPath || ''
+//     };
+
+//     if (subTask.username) {
+//       fields.assignee = { name: subTask.username };
+//     }
+
+//     return axios.post(`${JIRA_BASE_URL}/rest/api/2/issue`, {
+//       fields
+//     }, {
+//       headers: {
+//         Authorization: `Basic ${authToken}`,
+//         'Content-Type': 'application/json'
+//       }
+//     }).then(response => ({
+//       status: 'fulfilled',
+//       data: response.data,
+//       index
+//     })).catch(error => ({
+//       status: 'rejected',
+//       error: error?.response?.data || error.message,
+//       index,
+//       input: subTask
+//     }));
+
+//     });
+
+//     const results = await Promise.all(requests);
+
+//     const successful = results.filter(r => r.status === 'fulfilled');
+//     const failed = results.filter(r => r.status === 'rejected');
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Sub-task creation completed.",
+//       total: results.length,
+//       successfulCount: successful.length,
+//       failedCount: failed.length,
+//       failedRequests: failed.map(f => ({
+//         index: f.index + 1,
+//         reason: f.error,
+//         parameters: f.input
+//       })),
+//       successfulResults: successful.map(s => s.data)
+//     });
+
+//   } catch (err) {
+//     console.error("Token decryption or setup error >>>", err);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Authentication or setup failed',
+//       error: err.message
+//     });
+//   }
+// });
+
 app.post('/jiraHelper/create-subtask', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const secretKey = config.secretKey;
-
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return res.status(400).json({
-      success: false,
-      message: 'Missing or invalid Authorization header',
-    });
-  }
   try {
-    const encryptedToken = authHeader.split(' ')[1];
-    const bytes = CryptoJS.AES.decrypt(encryptedToken, secretKey);
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    const jsessionId = req.headers['x-jsessionid']; // custom header from client
 
-    if (!decrypted) {
-      throw new Error("Failed to decrypt, possibly invalid key or token");
+    if (!jsessionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing JSESSIONID in request headers'
+      });
     }
-
-    const decoded = Buffer.from(decrypted, 'base64').toString();
-    const [username, apiToken] = decoded.split(':');
-    const authToken = Buffer.from(`${username}:${apiToken}`).toString('base64');
 
     const subTasks = req.body;
 
@@ -145,28 +308,36 @@ app.post('/jiraHelper/create-subtask', async (req, res) => {
       customfield_13738: subTask.timesheetPath || ''
     };
 
-    if (subTask.username) {
-      fields.assignee = { name: subTask.username };
-    }
-
-    return axios.post(`${JIRA_BASE_URL}/rest/api/2/issue`, {
-      fields
-    }, {
-      headers: {
-        Authorization: `Basic ${authToken}`,
-        'Content-Type': 'application/json'
+      if (subTask.username) {
+        fields.assignee = { name: subTask.username };
       }
-    }).then(response => ({
-      status: 'fulfilled',
-      data: response.data,
-      index
-    })).catch(error => ({
-      status: 'rejected',
-      error: error?.response?.data || error.message,
-      index,
-      input: subTask
-    }));
 
+      return axios.post(`${JIRA_BASE_URL}/rest/api/2/issue`, { fields }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': `JSESSIONID=${jsessionId}`  // 🔑 Auth via session cookie
+        }
+      })
+      .then(response => {
+        console.log(`✅ Sub-task [${index + 1}] created successfully >>>`, response.data);
+        return {
+          status: 'fulfilled',
+          data: response.data,
+          index
+        };
+      })
+      .catch(error => {
+        console.error(`❌ Sub-task [${index + 1}] creation failed >>>`, error?.response?.data || error.message);
+        return {
+          status: 'rejected',
+          error: error?.response?.data || error.message,
+          index,
+          input: subTask
+        };
+      })
+      .finally(() => {
+        console.log(`ℹ️ Finished processing sub-task [${index + 1}] with summary: "${subTask.summary}"`);
+      });
     });
 
     const results = await Promise.all(requests);

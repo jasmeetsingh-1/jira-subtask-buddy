@@ -227,7 +227,6 @@ const Dashboard = () => {
       return task;
     });
     createSubtask(authToken, subtaskArray)
-    console.log("subtask array to create >>>>", userData);
   }
 
   const handleLogout = () => {

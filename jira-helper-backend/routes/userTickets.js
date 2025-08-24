@@ -7,7 +7,9 @@ const router = express.Router();
 const JIRA_BASE_URL = config.jiraBaseUrl;
 
 /**
- * 📌 Middleware: Decrypt the Jira token from Authorization header
+ * 📌 Middleware: Decrypt Jira token from Authorization header
+ * - Expected: AES encrypted Base64("username:apiToken")
+ * - Produces: { username, apiToken }
  */
 async function decryptTokenMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -28,8 +30,13 @@ async function decryptTokenMiddleware(req, res, next) {
 
     const decoded = Buffer.from(decrypted, 'base64').toString();
     const [username, apiToken] = decoded.split(':');
-    req.authToken = Buffer.from(`${username}:${apiToken}`).toString('base64');
 
+    if (!username || !apiToken) {
+      throw new Error('Invalid decrypted credentials');
+    }
+
+    req.username = username;
+    req.apiToken = apiToken;
     next();
   } catch (err) {
     console.error('Token decryption error:', err.message);
@@ -42,201 +49,151 @@ async function decryptTokenMiddleware(req, res, next) {
 }
 
 /**
- * 📌 Middleware: Fetch subtasks for each issue
+ * 📌 Route: Get JSESSIONID from Jira
  */
-async function fetchSubtasksMiddleware(req, res, next) {
-  const { issues, authToken } = req;
-
+router.post('/get-session', decryptTokenMiddleware, async (req, res) => {
   try {
-    const issueMap = new Map();
+    const { username, apiToken } = req;
 
-    for (const issue of issues) {
-      try {
-        const response = await axios.get(
-          `${JIRA_BASE_URL}/rest/api/2/issue/${issue.key}?fields=parent,subtasks,summary`,
-          {
-            headers: {
-              Authorization: `Basic ${authToken}`,
-              Accept: 'application/json',
-            },
-          }
-        );
+    const response = await axios.post(
+      `${JIRA_BASE_URL}/rest/auth/1/session`,
+      { username, password: apiToken }, // Jira expects "password" but it can be an API token
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
-        const issueData = response.data;
+    // Extract JSESSIONID from cookie
+    const cookies = response.headers['set-cookie'] || [];
+    const jsessionId = cookies
+      .map((c) => c.split(';')[0])
+      .find((c) => c.startsWith('JSESSIONID='))
+      ?.replace('JSESSIONID=', '');
 
-        // Determine main issue
-        let mainIssue;
-        if (issueData.fields.parent) {
-          mainIssue = {
-            id: issueData.fields.parent.id,
-            key: issueData.fields.parent.key,
-            summary: issueData.fields.parent.fields.summary,
-          };
-        } else {
-          mainIssue = {
-            id: issueData.id,
-            key: issueData.key,
-            summary: issueData.fields.summary,
-          };
-        }
-
-        // Fetch subtasks with id, key, summary, and status.name
-        let subtasks = [];
-        if (issueData.fields.subtasks?.length) {
-          const subtaskPromises = issueData.fields.subtasks.map(async (sub) => {
-            try {
-              const subRes = await axios.get(
-                `${JIRA_BASE_URL}/rest/api/2/issue/${sub.key}?fields=summary,status`,
-                {
-                  headers: {
-                    Authorization: `Basic ${authToken}`,
-                    Accept: 'application/json',
-                  },
-                }
-              );
-              return {
-                id: subRes.data.id,
-                key: subRes.data.key,
-                summary: subRes.data.fields.summary,
-                status: subRes.data.fields.status?.name || "Unknown"
-              };
-            } catch (subErr) {
-              console.error(`Failed to fetch subtask ${sub.key}`, subErr.message);
-              return null;
-            }
-          });
-
-          const subtaskResults = await Promise.all(subtaskPromises);
-          subtasks = subtaskResults.filter(Boolean);
-        }
-
-        // Merge into map (ensuring uniqueness of main issue)
-        if (!issueMap.has(mainIssue.key)) {
-          issueMap.set(mainIssue.key, {
-            mainissue: mainIssue,
-            subtask: subtasks,
-          });
-        } else {
-          const existing = issueMap.get(mainIssue.key);
-          existing.subtask = [...existing.subtask, ...subtasks];
-          issueMap.set(mainIssue.key, existing);
-        }
-      } catch (err) {
-        console.error(`Failed to fetch details for ${issue.key}`, err.message);
-      }
+    if (!jsessionId) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve JSESSIONID from Jira response',
+      });
     }
 
-    req.issuesWithSubtasks = Array.from(issueMap.values());
-    next();
+    res.status(200).json({
+      success: true,
+      message: 'Session created successfully',
+      jsessionId,
+      rawResponse: response.data, // Optional
+    });
   } catch (err) {
-    next(err);
+    console.error('Jira login failed >>>', err?.response?.data || err.message);
+    res.status(401).json({
+      success: false,
+      message: 'Authentication failed',
+      error: err?.response?.data || err.message,
+    });
   }
-}
+});
 
 /**
- * 📌 Route: Get all tickets assigned to the given user
+ * 📌 Route: Get all tickets assigned to a given user (using JSESSIONID)
  */
-router.post(
-  '/getAllTickets',
-  decryptTokenMiddleware,
-  async (req, res, next) => {
-    const authToken = req.authToken;
-    const { userName } = req.body; // ✅ using userName
+router.post('/getAllTickets', async (req, res) => {
+  const { userName } = req.body;
+  const jsessionId = req.headers['x-jsessionid'];
 
-    try {
-      const jql = `assignee="${userName}" order by updated DESC`;
-      const issuesRes = await axios.get(
-        `${JIRA_BASE_URL}/rest/api/2/search?jql=${encodeURIComponent(jql)}`,
-        { headers: { Authorization: `Basic ${authToken}` } }
+  if (!jsessionId || !userName) {
+    return res.status(400).json({
+      success: false,
+      message: 'jsessionId and userName are required',
+    });
+  }
+
+  try {
+    const jql = `assignee="${userName}" order by updated DESC`;
+
+    const issuesRes = await axios.get(
+      `${JIRA_BASE_URL}/rest/api/2/search?jql=${encodeURIComponent(jql)}`,
+      {
+        headers: {
+          Cookie: `JSESSIONID=${jsessionId}`,
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    const issues = issuesRes.data.issues.map((i) => ({ key: i.key }));
+
+    // Fetch full issue details and group by main issue
+    const uniqueMainIssues = new Map();
+
+    for (const issue of issues) {
+      const issueRes = await axios.get(
+        `${JIRA_BASE_URL}/rest/api/2/issue/${issue.key}`,
+        {
+          headers: {
+            Cookie: `JSESSIONID=${jsessionId}`,
+            Accept: 'application/json',
+          },
+        }
       );
 
-      req.issues = issuesRes.data.issues.map((i) => ({
-        key: i.key,
-      }));
-      req.authToken = authToken;
+      const data = issueRes.data;
 
-      next();
-    } catch (err) {
-      console.error('Error in /userTickets/getAllTickets:', err.message);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch tickets',
-        error: err.message,
-      });
-    }
-  },
-  async (req, res) => {
-    try {
-      const authToken = req.authToken;
+      // If subtask, parent is main issue
+      const mainIssue = data.fields.parent || data;
+      const mainKey = mainIssue.key;
 
-      // Fetch full issue details for each ticket
-      const uniqueMainIssues = new Map();
+      if (!uniqueMainIssues.has(mainKey)) {
+        // Handle sprint field
+        const sprintField =
+          mainIssue.fields?.sprint ||
+          mainIssue.fields?.customfield_10020?.[0] ||
+          null;
+        const sprintData = sprintField
+          ? {
+              id: sprintField.id,
+              name: sprintField.name,
+              state: sprintField.state,
+            }
+          : null;
 
-      for (const issue of req.issues) {
-        const issueRes = await axios.get(
-          `${JIRA_BASE_URL}/rest/api/2/issue/${issue.key}`,
-          { headers: { Authorization: `Basic ${authToken}` } }
-        );
-
-        const data = issueRes.data;
-
-        // If subtask, use parent as main issue
-        const mainIssue = data.fields.parent || data;
-
-        const mainKey = mainIssue.key;
-
-        if (!uniqueMainIssues.has(mainKey)) {
-          // Sprint handling (works for standard and custom field)
-          const sprintField = mainIssue.fields?.sprint || mainIssue.fields?.customfield_10020?.[0] || null;
-          const sprintData = sprintField
-            ? {
-                id: sprintField.id,
-                name: sprintField.name,
-                state: sprintField.state,
-              }
-            : null;
-
-          uniqueMainIssues.set(mainKey, {
-            parent: {
-              id: mainIssue.id,
-              key: mainIssue.key,
-              summary: mainIssue.fields.summary,
-            },
-            sprint: sprintData,
-            subtasks: [],
-          });
-        }
-
-        // If it's a subtask, add it to the parent's subtasks
-        if (data.fields.issuetype?.subtask) {
-          const parentKey = data.fields.parent.key;
-          const parentEntry = uniqueMainIssues.get(parentKey);
-
-          if (parentEntry) {
-            parentEntry.subtasks.push({
-              id: data.id,
-              key: data.key,
-              summary: data.fields.summary,
-              status: data.fields.status?.name || '',
-            });
-          }
-        }
+        uniqueMainIssues.set(mainKey, {
+          parent: {
+            id: mainIssue.id,
+            key: mainIssue.key,
+            summary: mainIssue.fields.summary,
+          },
+          sprint: sprintData,
+          subtasks: [],
+        });
       }
 
-      res.json({
-        success: true,
-        totalMainIssues: uniqueMainIssues.size,
-        issues: Array.from(uniqueMainIssues.values()),
-      });
-    } catch (err) {
-      console.error('Error assembling issues:', err.message);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to assemble ticket data',
-        error: err.message,
-      });
+      // Add subtask if applicable
+      if (data.fields.issuetype?.subtask) {
+        const parentKey = data.fields.parent.key;
+        const parentEntry = uniqueMainIssues.get(parentKey);
+
+        if (parentEntry) {
+          parentEntry.subtasks.push({
+            id: data.id,
+            key: data.key,
+            summary: data.fields.summary,
+            status: data.fields.status?.name || '',
+          });
+        }
+      }
     }
+
+    res.json({
+      success: true,
+      totalMainIssues: uniqueMainIssues.size,
+      issues: Array.from(uniqueMainIssues.values()),
+    });
+  } catch (err) {
+    console.error('Error in /getAllTickets:', err.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tickets',
+      error: err.message,
+    });
   }
-);
+});
 
 module.exports = router;
