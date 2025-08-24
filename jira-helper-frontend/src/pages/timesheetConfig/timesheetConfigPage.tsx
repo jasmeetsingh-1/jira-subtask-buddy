@@ -6,10 +6,12 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Plus, Edit2, Trash2, Star, Moon, Sun, FolderOpen } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Plus, Edit2, Trash2, Star, Moon, Sun, FolderOpen, ExternalLink } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { timesheetActions, workTypesActions, themeActions } from '@/store/store';
 import TimesheetModal from './timesheetConfigModal';
+import JiraViewer from '@/components/JiraViewer';
 import { useToast } from '@/hooks/use-toast';
 
 export interface TimesheetEntry {
@@ -33,6 +35,8 @@ export interface WorkTypeConfig {
 const TimesheetManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTimesheet, setEditingTimesheet] = useState<string | null>(null);
+  const [ticketId, setTicketId] = useState('');
+  const [showJiraViewer, setShowJiraViewer] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -128,9 +132,38 @@ const TimesheetManager = () => {
           </div>
         </div>
 
-        {/* Configuration Forms - Vertical Layout */}
-        <div className="space-y-6">
-          {/* Work Type Configuration */}
+        {/* Configuration Forms - Responsive Layout */}
+        <div className={`transition-all duration-300 ${showJiraViewer ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : 'space-y-6'}`}>
+          <div className="space-y-6">
+            {/* Ticket Information */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Ticket Information</CardTitle>
+                  <Button
+                    onClick={() => setShowJiraViewer(!showJiraViewer)}
+                    disabled={!ticketId}
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    View Ticket
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ticket-id">Ticket ID</Label>
+                  <Input
+                    id="ticket-id"
+                    placeholder="Enter ticket ID (e.g., SU-70083)"
+                    value={ticketId}
+                    onChange={(e) => setTicketId(e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Work Type Configuration */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Work Type Configuration</CardTitle>
@@ -166,8 +199,8 @@ const TimesheetManager = () => {
             </CardContent>
           </Card>
 
-          {/* Timesheet Configuration */}
-          <Card>
+            {/* Timesheet Configuration */}
+            <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Timesheet Configuration</CardTitle>
@@ -242,7 +275,31 @@ const TimesheetManager = () => {
                 </Table>
               )}
             </CardContent>
-          </Card>
+            </Card>
+          </div>
+
+          {/* Jira Viewer */}
+          {showJiraViewer && ticketId && (
+            <div className="animate-fade-in">
+              <Card className="h-[70vh]">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Jira Ticket: {ticketId}</CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setShowJiraViewer(false)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0 h-[calc(100%-5rem)]">
+                  <iframe
+                    src={`https://jira.grazitti.com/browse/${ticketId}`}
+                    className="w-full h-full border-0 rounded-b-lg"
+                    title={`Jira Ticket ${ticketId}`}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
 
         {/* Modal */}

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 
 import config from "../config/default.json";
 import {getAllTickets} from "../api/jiraLogTime.js";
@@ -97,20 +98,7 @@ const LogTime = () => {
   const { data, isLoading, isError } = useQuery<ApiResponse>({
     queryKey: ["userTickets", username],
     enabled: Boolean(username) && Boolean(authToken),
-    queryFn: async () => {
-      console.log(config.jSessionId)
-      const token = authToken?.startsWith("Basic ") ? authToken : `Basic ${authToken}`;
-      const res = await fetch("http://localhost:8081/userTickets/getAllTickets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          'x-jsessionid' : config.jSessionId,
-        },
-        body: JSON.stringify({ userName: username }),
-      });
-      if (!res.ok) throw new Error("Failed to fetch tickets");
-      return res.json();
-    },
+    queryFn: () => getAllTickets(username),
   });
 
   // Manage log state per subtask id
@@ -287,8 +275,17 @@ const LogTime = () => {
               </div>
 
               <footer className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-md border bg-card">
-                <div className="text-sm sm:text-base">
-                  Total Logged: <span className="font-semibold">{formatMinutes(totalMinutes)}</span>
+                <div className="flex items-center gap-4">
+                  <div className="text-sm sm:text-base">
+                    Total Logged: <span className="font-semibold">{formatMinutes(totalMinutes)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 min-w-[200px]">
+                    <Progress 
+                      value={(totalMinutes / 480) * 100} 
+                      className={`h-3 transition-all duration-300 ${totalMinutes >= 480 ? 'animate-bounce' : ''}`}
+                    />
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">/ 8h</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" onClick={resetAll}>Reset</Button>
