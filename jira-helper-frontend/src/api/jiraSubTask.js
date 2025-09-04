@@ -7,14 +7,13 @@ const getJsid = () => {
   return authState.jsid || '';
 };
 
-const createSubtask = async (token ,subtaskArray) => {
-  console.log('api hit started', token)
+const createSubtask = async (subtaskArray) => {
+  console.log('api hit started')
   const jsid = getJsid();
   const res = await fetch(`${config.backend}/jiraHelper/create-subtask`, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
-      // 'Authorization': `Basic ${token}`
       'x-jsessionid' : jsid
      },
     body: JSON.stringify(subtaskArray)

@@ -35,7 +35,7 @@ const Dashboard = () => {
   const dispatch = useAppDispatch();
   
   // Get data from Redux store
-  const { isLoggedIn, authToken, userData } = useAppSelector(state => state.auth);
+  const { isLoggedIn, userData } = useAppSelector(state => state.auth);
   const { timesheets } = useAppSelector(state => state.timesheet);
   const { workTypes: workTypeConfigs } = useAppSelector(state => state.workTypes);
   
@@ -44,8 +44,7 @@ const Dashboard = () => {
   const [defaultWorkType, setDefaultWorkType] = useState<string>("");
 
   useEffect(() => {
-    if (!isLoggedIn || !authToken) {
-      navigate('/');
+    if (!isLoggedIn) {
       return;
     }
 
@@ -65,7 +64,7 @@ const Dashboard = () => {
       setDefaultWorkType(defaultType.name);
     }
 
-  }, [navigate, isLoggedIn, authToken, timesheets, workTypeConfigs]);
+  }, [navigate, isLoggedIn, timesheets, workTypeConfigs]);
 
   // Track last selected work type for new subtasks
   const [lastSelectedWorkType, setLastSelectedWorkType] = useState<string>("");
@@ -228,7 +227,7 @@ const Dashboard = () => {
 
       return task;
     });
-    createSubtask(authToken, subtaskArray)
+    createSubtask("", subtaskArray)
   }
 
   const handleLogout = () => {

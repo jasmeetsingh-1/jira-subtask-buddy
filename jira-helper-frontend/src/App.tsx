@@ -6,8 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/hooks/useRedux";
 import { authActions } from "@/store/store";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
+import ExtensionModal from "./components/ExtensionModal";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import TimesheetManager from "./pages/timesheetConfig/timesheetConfigPage";
@@ -17,7 +16,7 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { isDarkMode } = useAppSelector(state => state.theme);
-  const { jsid } = useAppSelector(state => state.auth);
+  const { jsid, isLoggedIn } = useAppSelector(state => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   
@@ -41,9 +40,14 @@ const AppContent = () => {
     }
   }, [dispatch, navigate]);
 
+  // Show extension modal if no jsid
+  if (!jsid || !isLoggedIn) {
+    return <ExtensionModal />;
+  }
+
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
+      <Route path="/" element={<Dashboard />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/configuration" element={<TimesheetManager />} />
       <Route path="/logTime" element={<LogTime />} />

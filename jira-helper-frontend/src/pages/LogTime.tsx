@@ -81,7 +81,7 @@ const minutesToInputString = (mins: number): string => formatMinutes(mins);
 
 const LogTime = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, authToken, userData } = useAppSelector((s) => s.auth);
+  const { isLoggedIn, userData } = useAppSelector((s) => s.auth);
   const displayName = (userData as any)?.displayName || "User";
   const username = (userData as any)?.name || "";
 
@@ -90,14 +90,14 @@ const LogTime = () => {
   }, []);
 
   useEffect(() => {
-    if (!isLoggedIn || !authToken) {
+    if (!isLoggedIn) {
       navigate("/");
     }
-  }, [isLoggedIn, authToken, navigate]);
+  }, [isLoggedIn, navigate]);
 
   const { data, isLoading, isError } = useQuery<ApiResponse>({
     queryKey: ["userTickets", username],
-    enabled: Boolean(username) && Boolean(authToken),
+    enabled: Boolean(username),
     queryFn: () => getAllTickets(username),
   });
 
