@@ -10,7 +10,6 @@ const persistConfig = {
 // Auth slice
 const authInitialState = {
   isLoggedIn: false,
-  authToken: "",
   userData:{},
   jsid: "",
 };
@@ -20,21 +19,23 @@ const authSlice = createSlice({
   initialState: authInitialState,
   reducers: {
     login: (state, action) => {
-      console.log("udpateing the login >>>", action.payload);
+      console.log("updating the login >>>", action.payload);
       state.isLoggedIn = true;
-      state.authToken = action.payload.token;
       state.userData = {
         ...action.payload.userData,
       }
     },
     logout: (state) => {
       state.isLoggedIn = false;
-      state.authToken = "";
       state.userData = {};
       state.jsid = "";
     },
     setJsid: (state, action) => {
       state.jsid = action.payload;
+      // If jsid is set, consider user logged in
+      if (action.payload) {
+        state.isLoggedIn = true;
+      }
     },
   },
 });
