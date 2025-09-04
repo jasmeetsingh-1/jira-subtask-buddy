@@ -1,6 +1,6 @@
 import config from '../config/default.json';
 const getAllTickets = async (username) => {
-  const res = await fetch(`${config.backend}/jiraHelper/userTickets/getAllTickets`, {
+  const res = await fetch(`${config.backend}/userTickets/getAllTickets`, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',

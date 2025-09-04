@@ -276,7 +276,7 @@ const LogTime = () => {
 
               <footer className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-md border bg-card">
                 <div className="flex items-center gap-4">
-                  <div className="text-sm sm:text-base">
+                  <div className="w-44 text-sm sm:text-base">
                     Total Logged: <span className="font-semibold">{formatMinutes(totalMinutes)}</span>
                   </div>
                   <div className="flex items-center gap-2 min-w-[200px]">

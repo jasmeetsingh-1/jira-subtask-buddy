@@ -6,12 +6,10 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { ArrowLeft, Plus, Edit2, Trash2, Star, Moon, Sun, FolderOpen, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, Star, Moon, Sun, FolderOpen } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { timesheetActions, workTypesActions, themeActions } from '@/store/store';
 import TimesheetModal from './timesheetConfigModal';
-import JiraViewer from '@/components/JiraViewer';
 import { useToast } from '@/hooks/use-toast';
 
 export interface TimesheetEntry {
@@ -35,7 +33,6 @@ export interface WorkTypeConfig {
 const TimesheetManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTimesheet, setEditingTimesheet] = useState<string | null>(null);
-  const [ticketId, setTicketId] = useState('');
   const { toast } = useToast();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -131,137 +128,120 @@ const TimesheetManager = () => {
           </div>
         </div>
 
+        {/* Configuration Forms - Vertical Layout */}
         <div className="space-y-6">
-          {/* Ticket Information */}
+          {/* Work Type Configuration */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Ticket Information</CardTitle>
+              <CardTitle className="text-lg">Work Type Configuration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="ticket-id">Ticket ID</Label>
-                <Input
-                  id="ticket-id"
-                  placeholder="Enter ticket ID (e.g., SU-70083)"
-                  value={ticketId}
-                  onChange={(e) => setTicketId(e.target.value)}
-                />
+              <div className="space-y-2 flex items-center">
+                <div className="flex flex-col justify-end">
+                  <Label htmlFor="default-worktype">Default Work Type</Label>
+                  <p className="w-[190px] mt-2 text-[11px] leading-[13px] text-muted-foreground">This work type will be selected by default for new subtasks.</p>
+                </div>
+                <Select
+                  value={defaultWorkType?.id.toString() || ""}
+                  onValueChange={handleSetDefaultWorkType}
+                >
+                  <SelectTrigger className="w-1/2">
+                    <SelectValue placeholder="Select default work type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workTypes.map((workType) => (
+                      <SelectItem key={workType.id} value={workType.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <span>{workType.name}</span>
+                          {workType.isDefault && (
+                            <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded">Default</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
               </div>
             </CardContent>
           </Card>
 
-          {/* Work Type Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Work Type Configuration</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2 flex items-center">
-              <div className="flex flex-col justify-end">
-                <Label htmlFor="default-worktype">Default Work Type</Label>
-                <p className="w-[190px] mt-2 text-[11px] leading-[13px] text-muted-foreground">This work type will be selected by default for new subtasks.</p>
-              </div>
-              <Select
-                value={defaultWorkType?.id.toString() || ""}
-                onValueChange={handleSetDefaultWorkType}
-              >
-                <SelectTrigger className="w-1/2">
-                  <SelectValue placeholder="Select default work type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {workTypes.map((workType) => (
-                    <SelectItem key={workType.id} value={workType.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <span>{workType.name}</span>
-                        {workType.isDefault && (
-                          <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded">Default</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-            </div>
-          </CardContent>
-        </Card>
-
           {/* Timesheet Configuration */}
           <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Timesheet Configuration</CardTitle>
-              <Button
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add new timesheet path
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {timesheets.length === 0 ? (
-              <div className="text-center py-8">
-                <FolderOpen className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-3">No timesheet paths yet, add paths to get started!</p>
-                {/* <Button onClick={() => setIsModalOpen(true)} size="sm">
-                  <Plus className="h-3 w-3 mr-1" />
-                  Create First Path
-                </Button> */}
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Timesheet Configuration</CardTitle>
+                <Button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add new timesheet path
+                </Button>
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Timesheet Path Label</TableHead>
-                    <TableHead>Timesheet Path</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {timesheets.map((timesheet) => (
-                    <TableRow key={timesheet.id}>
-                      <TableCell className="font-medium">{timesheet.title}</TableCell>
-                      <TableCell className="w-full">
-                        <div className="space-y-1">
-                          {timesheet.entries.map((entry) => (
-                            <div
-                              key={entry.id}
-                              className="text-xs font-mono text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap"
-                              title={entry.path} // optional: full text on hover
-                            >
-                              {entry.path}
-                            </div>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditTimesheet(timesheet.id)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteTimesheet(timesheet.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+            </CardHeader>
+            <CardContent>
+              {timesheets.length === 0 ? (
+                <div className="text-center py-8">
+                  <FolderOpen className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-3">No timesheet paths yet, add paths to get started!</p>
+                  {/* <Button onClick={() => setIsModalOpen(true)} size="sm">
+                    <Plus className="h-3 w-3 mr-1" />
+                    Create First Path
+                  </Button> */}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Timesheet Path Label</TableHead>
+                      <TableHead>Timesheet Path</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
+                  </TableHeader>
+                  <TableBody>
+                    {timesheets.map((timesheet) => (
+                      <TableRow key={timesheet.id}>
+                        <TableCell className="font-medium">{timesheet.title}</TableCell>
+                        <TableCell className="w-full">
+                          <div className="space-y-1">
+                            {timesheet.entries.map((entry) => (
+                              <div
+                                key={entry.id}
+                                className="text-xs font-mono text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap"
+                                title={entry.path} // optional: full text on hover
+                              >
+                                {entry.path}
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditTimesheet(timesheet.id)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteTimesheet(timesheet.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
           </Card>
         </div>
 
