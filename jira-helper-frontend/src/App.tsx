@@ -3,8 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useAppSelector } from "@/hooks/useRedux";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { useAppSelector, useAppDispatch } from "@/hooks/useRedux";
+import { authActions } from "@/store/store";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -16,6 +17,9 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { isDarkMode } = useAppSelector(state => state.theme);
+  const { jsid } = useAppSelector(state => state.auth);
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   
   // Apply dark mode globally
   useEffect(() => {
@@ -26,26 +30,37 @@ const AppContent = () => {
     }
   }, [isDarkMode]);
 
+  // Check for jsid in URL params and redirect to dashboard
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const jsidFromUrl = urlParams.get('jsid');
+    
+    if (jsidFromUrl) {
+      dispatch(authActions.setJsid(jsidFromUrl));
+      navigate('/dashboard');
+    }
+  }, [dispatch, navigate]);
+
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/configuration" element={<TimesheetManager />} />
-        <Route path="/logTime" element={<LogTime />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/configuration" element={<TimesheetManager />} />
+      <Route path="/logTime" element={<LogTime />} />
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AppContent />
+      <BrowserRouter>
+        <Toaster />
+        <Sonner />
+        <AppContent />
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

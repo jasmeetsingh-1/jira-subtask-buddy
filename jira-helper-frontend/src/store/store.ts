@@ -12,6 +12,7 @@ const authInitialState = {
   isLoggedIn: false,
   authToken: "",
   userData:{},
+  jsid: "",
 };
 
 const authSlice = createSlice({
@@ -30,6 +31,10 @@ const authSlice = createSlice({
       state.isLoggedIn = false;
       state.authToken = "";
       state.userData = {};
+      state.jsid = "";
+    },
+    setJsid: (state, action) => {
+      state.jsid = action.payload;
     },
   },
 });
