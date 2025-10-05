@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search } from "lucide-react";
 
 
 import {getUserDetails} from "../api/jiraLogin";
@@ -82,6 +84,7 @@ const LogTime = () => {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     document.title = "Log Time | Jira Helper";
@@ -152,6 +155,14 @@ const LogTime = () => {
 
   const totalMinutes = useMemo(() => Object.values(logMap).reduce((sum, s) => sum + (s.minutes || 0), 0), [logMap]);
 
+  const filteredIssues = useMemo(() => {
+    if (!searchQuery.trim()) return data?.issues || [];
+    const query = searchQuery.toLowerCase();
+    return (data?.issues || []).filter((issue) =>
+      issue.parent.summary.toLowerCase().includes(query)
+    );
+  }, [data?.issues, searchQuery]);
+
   const handleSubmit = () => {
     const payload = (data?.issues || []).flatMap((issue) =>
       (issue.subtasks || []).map((st) => ({
@@ -206,18 +217,70 @@ const LogTime = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Log Time</h1>
-            <p className="text-muted-foreground">View your issues and log time for subtasks</p>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Log Time</h1>
+              <p className="text-muted-foreground">View your issues and log time for subtasks</p>
+            </div>
+            <div className="relative w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by parent summary..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
           </div>
 
-          {isLoading && <div className="text-muted-foreground">Loading tickets…</div>}
+          {isLoading && (
+            <div className="space-y-6">
+              {[1, 2].map((i) => (
+                <div key={i} className="rounded-md border bg-card">
+                  <div className="p-4 border-b space-y-2">
+                    <Skeleton className="h-6 w-2/3" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <div className="p-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[120px]">Subtask</TableHead>
+                          <TableHead>Summary</TableHead>
+                          <TableHead className="min-w-[140px]">Status</TableHead>
+                          <TableHead className="min-w-[180px]">Log Time</TableHead>
+                          <TableHead className="min-w-[280px]">Description</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {[1, 2, 3].map((j) => (
+                          <TableRow key={j}>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-28" /></TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Skeleton className="h-9 w-16" />
+                                <Skeleton className="h-9 w-28" />
+                                <Skeleton className="h-9 w-16" />
+                              </div>
+                            </TableCell>
+                            <TableCell><Skeleton className="h-10 w-full" /></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {isError && <div className="text-destructive">Failed to load tickets. Please try again.</div>}
 
           {!isLoading && !isError && (
             <div className="space-y-6">
               <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-6">
-                {(data?.issues || []).map((issue) => (
+                {filteredIssues.map((issue) => (
                   <section key={issue.parent.id} className="rounded-md border bg-card">
                     <div className="p-4 border-b flex items-center justify-between">
                       <div>
