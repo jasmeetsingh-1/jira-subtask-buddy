@@ -13,6 +13,8 @@ import { Search } from "lucide-react";
 
 import {getUserDetails} from "../api/jiraLogin";
 import { getAllTickets } from "../api/jiraLogTime.js";
+import { logWork } from "../api/jiraWorkLog.js";
+import { SubmissionResultModal, ConfirmationModal } from "../components/modals";
 
 interface ApiSubtask {
   id: string;
@@ -85,6 +87,10 @@ const LogTime = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState<any>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     document.title = "Log Time | Jira Helper";
@@ -173,12 +179,61 @@ const LogTime = () => {
       }))
     ).filter((p) => p.minutes > 0);
 
+    if (payload.length === 0) {
+      alert("No time entries to submit. Please add time to at least one subtask.");
+      return;
+    }
+
+    setShowConfirmModal(true);
+  };
+
+  const confirmSubmit = async () => {
+    const payload = (data?.issues || []).flatMap((issue) =>
+      (issue.subtasks || []).map((st) => ({
+        subtaskId: st.id,
+        subtaskKey: st.key,
+        minutes: logMap[st.id]?.minutes || 0,
+        description: logMap[st.id]?.description || "",
+      }))
+    ).filter((p) => p.minutes > 0);
+
     console.log("Time log submit payload:", {
       username,
       totalMinutes,
       entries: payload,
     });
-    alert(`Prepared ${payload.length} time log entrie(s) totaling ${formatMinutes(totalMinutes)}. Check console for payload.`);
+
+    setIsSubmitting(true);
+    setSubmitResult(null);
+    setShowConfirmModal(false);
+
+    try {
+      const result = await logWork({
+        username,
+        totalMinutes,
+        entries: payload
+      });
+
+      setSubmitResult(result);
+      setShowResultModal(true);
+      
+      if (result.success) {
+        // Clear the form after successful submission
+        resetAll();
+      }
+    } catch (error) {
+      console.error("Error submitting work log:", error);
+      setSubmitResult({
+        success: false,
+        message: "Failed to submit work log. Please try again.",
+        totalEntries: 0,
+        successfulEntries: 0,
+        failedEntries: 0
+      });
+      setShowResultModal(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStatus = (status: string) => {
@@ -370,14 +425,37 @@ const LogTime = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={resetAll}>Reset</Button>
-                  <Button onClick={handleSubmit}>Submit</Button>
+                  <Button variant="outline" onClick={resetAll} disabled={isSubmitting}>Reset</Button>
+                  <Button onClick={handleSubmit} disabled={isSubmitting || totalMinutes === 0}>
+                    {isSubmitting ? "Submitting..." : "Submit"}
+                  </Button>
                 </div>
               </footer>
+
             </div>
           )}
         </div>
       </main>
+
+      {/* Modals */}
+      <ConfirmationModal
+        show={showConfirmModal}
+        onHide={() => setShowConfirmModal(false)}
+        onConfirm={confirmSubmit}
+        title="Confirm Work Log Submission"
+        message={`Are you sure you want to submit ${totalMinutes} minutes of work across ${(data?.issues || []).flatMap(issue => issue.subtasks || []).filter(st => logMap[st.id]?.minutes > 0).length} subtask(s)?`}
+        confirmText="Submit Work Log"
+        cancelText="Cancel"
+        variant="default"
+        isLoading={isSubmitting}
+      />
+
+      <SubmissionResultModal
+        show={showResultModal}
+        onHide={() => setShowResultModal(false)}
+        result={submitResult}
+        totalMinutes={totalMinutes}
+      />
     </div>
   );
 };
