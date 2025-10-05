@@ -35,7 +35,7 @@ const Dashboard = () => {
   const dispatch = useAppDispatch();
   
   // Get data from Redux store
-  const { isLoggedIn, userData } = useAppSelector(state => state.auth);
+  const { isLoggedIn, userData, jsid } = useAppSelector(state => state.auth);
   const { timesheets } = useAppSelector(state => state.timesheet);
   const { workTypes: workTypeConfigs } = useAppSelector(state => state.workTypes);
   
@@ -44,7 +44,7 @@ const Dashboard = () => {
   const [defaultWorkType, setDefaultWorkType] = useState<string>("");
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !jsid) {
       return;
     }
 

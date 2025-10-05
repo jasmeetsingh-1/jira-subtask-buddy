@@ -18,18 +18,16 @@ const loginToJira = async (username, password) => {
   return res.json();
 };
 
-const getUserDetails = async (username, password) => {
-  const secretKey = config.secretKey;
-  const credentials = btoa(`${username}:${password}`);
-  const encrypted = CryptoJS.AES.encrypt(credentials, secretKey).toString();
+const getUserDetails = async (jsid) => {
   const res = await fetch(`${config.backend}/jiraHelper/user-info`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Basic ${encrypted}`
-    }
+    },
+    body: JSON.stringify({ jsid }),
   });
+
   return res.json();
-}
+};
 
 export { loginToJira, getUserDetails };

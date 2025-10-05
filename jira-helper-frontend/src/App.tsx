@@ -12,6 +12,8 @@ import NotFound from "./pages/NotFound";
 import TimesheetManager from "./pages/timesheetConfig/timesheetConfigPage";
 import LogTime from "./pages/LogTime";
 
+ import { getUserDetails } from "./api/jiraLogin";
+
 const queryClient = new QueryClient();
 
 const AppContent = () => {
@@ -19,6 +21,9 @@ const AppContent = () => {
   const { jsid, isLoggedIn } = useAppSelector(state => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const jsidFromUrl = urlParams.get('jsid');
   
   // Apply dark mode globally
   useEffect(() => {
@@ -29,16 +34,23 @@ const AppContent = () => {
     }
   }, [isDarkMode]);
 
-  // Check for jsid in URL params and redirect to dashboard
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const jsidFromUrl = urlParams.get('jsid');
-    
+  useEffect(() => {    
     if (jsidFromUrl) {
       dispatch(authActions.setJsid(jsidFromUrl));
+      fetchUserData(jsidFromUrl);
       navigate('/dashboard');
     }
   }, [dispatch, navigate]);
+
+
+  const fetchUserData = async(jsId) => {
+    const data = await getUserDetails(jsId)
+    console.log("data of the | user-info >>>", data);
+    dispatch(authActions.login({
+      isLoggedIn:true,
+      userData: {...data}
+    }))
+  }
 
   // Show extension modal if no jsid
   if (!jsid || !isLoggedIn) {

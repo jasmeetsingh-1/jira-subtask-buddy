@@ -135,37 +135,23 @@ app.post('/jiraHelper/get-session', async (req, res) => {
   }
 });
 
-
 app.post('/jiraHelper/user-info', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const secretKey = config.secretKey;;
+  const { jsid } = req.body; // expect jsid from frontend
 
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
+  if (!jsid) {
     return res.status(400).json({
       success: false,
-      message: 'Missing or invalid Authorization header',
+      message: 'Missing JSESSIONID',
     });
   }
-  const encryptedToken = authHeader.split(' ')[1];
 
   try {
-    const bytes = CryptoJS.AES.decrypt(encryptedToken, secretKey);
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-
-    if (!decrypted) {
-      throw new Error("Failed to decrypt Authorization header");
-    }
-    const decoded = Buffer.from(decrypted, 'base64').toString();
-    const [username, apiToken] = decoded.split(':');
-    const jiraAuth = Buffer.from(`${username}:${apiToken}`).toString('base64');
-
     const response = await axios.get(`${JIRA_BASE_URL}/rest/api/2/myself`, {
       headers: {
-        Authorization: `Basic ${jiraAuth}`,
         Accept: 'application/json',
+        Cookie: `JSESSIONID=${jsid}`, // send Jira session cookie
       },
     });
-
     res.json({ success: true, data: response.data });
   } catch (err) {
     console.error('Error fetching Jira user info:', err.response?.data || err.message);
@@ -176,7 +162,6 @@ app.post('/jiraHelper/user-info', async (req, res) => {
     });
   }
 });
-
 
 // 📌 Create sub-task route
 // app.post('/jiraHelper/create-subtask', async (req, res) => {
@@ -277,8 +262,10 @@ app.post('/jiraHelper/user-info', async (req, res) => {
 // });
 
 app.post('/jiraHelper/create-subtask', async (req, res) => {
+  console.log("header >>>>>>", req.headers['x-jsessionid']);
   try {
     const jsessionId = req.headers['x-jsessionid']; // custom header from client
+    console.log("jsessionid >>>>>", {jsessionId});
 
     if (!jsessionId) {
       return res.status(400).json({

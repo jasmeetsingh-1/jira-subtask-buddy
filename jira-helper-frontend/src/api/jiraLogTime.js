@@ -9,6 +9,7 @@ const getJsid = () => {
 
 const getAllTickets = async (username) => {
   const jsid = getJsid();
+  console.log("trying to hit >>>", username, jsid);
   const res = await fetch(`${config.backend}/userTickets/getAllTickets`, {
     method: 'POST',
     headers: { 

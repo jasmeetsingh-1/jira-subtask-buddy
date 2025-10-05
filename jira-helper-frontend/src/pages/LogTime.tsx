@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/hooks/useRedux";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 
-import config from "../config/default.json";
-import {getAllTickets} from "../api/jiraLogTime.js";
+
+import {getUserDetails} from "../api/jiraLogin";
+import { getAllTickets } from "../api/jiraLogTime.js";
 
 interface ApiSubtask {
   id: string;
@@ -35,11 +35,10 @@ interface ApiResponse {
   issues: ApiIssue[];
 }
 
-// Local state for logging time per subtask
 interface LogState {
-  minutes: number; // store minutes; display as "xh ym"
+  minutes: number;
   description: string;
-  inputText?: string; // temp user input for time field
+  inputText?: string;
 }
 
 const statusOrder = (status: string) => {
@@ -58,36 +57,45 @@ const formatMinutes = (mins: number) => {
   return `${h}h ${m}m`;
 };
 
-// Parse user input like "1h 30m", "90m", "1.5h", "90"
 const parseTimeInput = (input: string): number => {
   if (!input) return 0;
   const str = input.trim().toLowerCase().replace(/\s+/g, " ");
-  // direct minutes number
   if (/^\d+$/.test(str)) return parseInt(str, 10);
-  // 1.5h or 1.25h forms
   const mHourDecimal = str.match(/^(\d+(?:\.\d+)?)h$/);
   if (mHourDecimal) return Math.round(parseFloat(mHourDecimal[1]) * 60);
-  // h and m mixed, in any order
   let total = 0;
   const hMatch = str.match(/(\d+(?:\.\d+)?)\s*h/);
   const mMatch = str.match(/(\d+)\s*m/);
   if (hMatch) total += Math.round(parseFloat(hMatch[1]) * 60);
   if (mMatch) total += parseInt(mMatch[1], 10);
-  if (total > 0) return total;
-  return 0;
+  return total;
 };
 
 const minutesToInputString = (mins: number): string => formatMinutes(mins);
 
 const LogTime = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, userData } = useAppSelector((s) => s.auth);
+  const { isLoggedIn, userData, jsid } = useAppSelector((s) => s.auth);
   const displayName = (userData as any)?.displayName || "User";
   const username = (userData as any)?.name || "";
+
+  const [data, setData] = useState<ApiResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
     document.title = "Log Time | Jira Helper";
   }, []);
+
+  useEffect(()=>{
+    fetchUserData(jsid);
+  },[jsid])
+
+
+  const fetchUserData = async(jsid) => {
+    const data = await getUserDetails(jsid);
+    console.log("Data >>>", data.res);
+  }
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -95,13 +103,25 @@ const LogTime = () => {
     }
   }, [isLoggedIn, navigate]);
 
-  const { data, isLoading, isError } = useQuery<ApiResponse>({
-    queryKey: ["userTickets", username],
-    enabled: Boolean(username),
-    queryFn: () => getAllTickets(username),
-  });
+  useEffect(() => {
+    if (!username) return;
+    const fetchTickets = async () => {
+      setIsLoading(true);
+      setIsError(false);
+      try {
+        const res = await getAllTickets(username);
+        setData(res);
+      } catch (err) {
+        console.error("❌ Failed to fetch tickets:", err);
+        setIsError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTickets();
+  }, [username]);
 
-  // Manage log state per subtask id
+  // Log state per subtask
   const [logMap, setLogMap] = useState<Record<string, LogState>>({});
   const adjustTime = (subtaskId: string, deltaMin: number) => {
     setLogMap((prev) => {
@@ -133,7 +153,6 @@ const LogTime = () => {
   const totalMinutes = useMemo(() => Object.values(logMap).reduce((sum, s) => sum + (s.minutes || 0), 0), [logMap]);
 
   const handleSubmit = () => {
-    // Currently no API provided to submit time logs; expose the payload for integration
     const payload = (data?.issues || []).flatMap((issue) =>
       (issue.subtasks || []).map((st) => ({
         subtaskId: st.id,
@@ -252,7 +271,7 @@ const LogTime = () => {
                                       value={logMap[st.id]?.inputText ?? minutesToInputString(logMap[st.id]?.minutes || 0)}
                                       onChange={(e) => setTimeText(st.id, e.target.value)}
                                       onBlur={() => commitTimeText(st.id)}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
+                                      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                                     />
                                     <Button variant="outline" size="sm" onClick={() => adjustTime(st.id, 15)}>+15m</Button>
                                   </div>
@@ -280,9 +299,9 @@ const LogTime = () => {
                     Total Logged: <span className="font-semibold">{formatMinutes(totalMinutes)}</span>
                   </div>
                   <div className="flex items-center gap-2 min-w-[200px]">
-                    <Progress 
-                      value={Math.min((totalMinutes / 480) * 100, 100)} 
-                      className={`h-3 transition-all duration-300 ${totalMinutes >= 480 ? 'animate-bounce' : ''}`}
+                    <Progress
+                      value={Math.min((totalMinutes / 480) * 100, 100)}
+                      className={`h-3 transition-all duration-300 ${totalMinutes >= 480 ? "animate-bounce" : ""}`}
                     />
                     <span className="text-xs text-muted-foreground whitespace-nowrap">/ 8h</span>
                   </div>

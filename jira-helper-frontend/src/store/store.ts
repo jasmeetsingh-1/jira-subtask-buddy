@@ -19,10 +19,10 @@ const authSlice = createSlice({
   initialState: authInitialState,
   reducers: {
     login: (state, action) => {
-      console.log("updating the login >>>", action.payload);
+      console.log("action.payload in login >>>", action.payload);
       state.isLoggedIn = true;
       state.userData = {
-        ...action.payload.userData,
+        ...action.payload.userData.data,
       }
     },
     logout: (state) => {
@@ -32,7 +32,6 @@ const authSlice = createSlice({
     },
     setJsid: (state, action) => {
       state.jsid = action.payload;
-      // If jsid is set, consider user logged in
       if (action.payload) {
         state.isLoggedIn = true;
       }

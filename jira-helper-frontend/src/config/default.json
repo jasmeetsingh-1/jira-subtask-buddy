@@ -1,5 +1,5 @@
 {
     "secretKey": "a9$J#vP1!rU@Z&k8*Xq3^t0L$M%eB7Wc",
     "jiraBaseUrl": "https://jira.grazitti.com",
-    "backend": "https://feature106.searchunify.com"
+    "backend": "http://localhost:8081"
 }
