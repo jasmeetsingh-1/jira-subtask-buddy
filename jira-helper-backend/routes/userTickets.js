@@ -108,6 +108,8 @@ router.post('/getAllTickets', async (req, res) => {
   try {
     const jql = `assignee="${userName}" order by updated DESC`;
 
+    console.log("this is jql >>>>>>>", jql);
+
     const issuesRes = await axios.get(
       `${JIRA_BASE_URL}/rest/api/2/search?jql=${encodeURIComponent(jql)}`,
       {
@@ -192,6 +194,88 @@ router.post('/getAllTickets', async (req, res) => {
       success: false,
       message: 'Failed to fetch tickets',
       error: err.message,
+    });
+  }
+});
+
+/**
+ * 🏃‍♂️ Route: Get active sprints for current user
+ */
+router.post('/get-active-sprints', async (req, res) => {
+  try {
+    const { jsessionId } = req.body;
+
+    if (!jsessionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing JSESSIONID in request body'
+      });
+    }
+
+    // Get active sprints for the user
+    const response = await axios.get(
+      `${JIRA_BASE_URL}/rest/agile/1.0/sprint?state=active`,
+      {
+        headers: {
+          Cookie: `JSESSIONID=${jsessionId}`,
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    console.log("response >>>>>>", response.data);
+    const sprints = response.data.values || [];
+    
+    // Filter sprints where user is involved (has issues assigned)
+    const activeSprintIds = [];
+    const sprintDetails = [];
+
+    for (const sprint of sprints) {
+      try {
+        // Get issues in this sprint assigned to current user
+        const sprintIssuesResponse = await axios.get(
+          `${JIRA_BASE_URL}/rest/api/2/search?jql=sprint=${sprint.id} AND assignee=currentUser()`,
+          {
+            headers: {
+              Cookie: `JSESSIONID=${jsessionId}`,
+              Accept: 'application/json',
+            },
+          }
+        );
+
+        const userIssuesInSprint = sprintIssuesResponse.data.issues || [];
+        
+        if (userIssuesInSprint.length > 0) {
+          activeSprintIds.push(sprint.id);
+          sprintDetails.push({
+            id: sprint.id,
+            name: sprint.name,
+            state: sprint.state,
+            startDate: sprint.startDate,
+            endDate: sprint.endDate,
+            userIssuesCount: userIssuesInSprint.length
+          });
+        }
+      } catch (err) {
+        console.error(`Error fetching issues for sprint ${sprint.id}:`, err.message);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Active sprint IDs retrieved successfully",
+      totalSprints: activeSprintIds.length,
+      activeSprintIds: activeSprintIds,
+      sprintDetails: sprintDetails
+    });
+    
+
+  } catch (err) {
+    console.error("Error fetching active sprints:", err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch active sprints',
+      error: err?.response?.data || err.message
     });
   }
 });

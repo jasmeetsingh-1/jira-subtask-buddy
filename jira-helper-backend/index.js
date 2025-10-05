@@ -11,6 +11,7 @@ const CryptoJS = require('crypto-js');
 const JIRA_BASE_URL = config.jiraBaseUrl;
 
 const userTicketsRoute = require('./routes/userTickets'); //new rputes
+const userWorkLogRoute = require('./routes/userWorkLog'); //work log routes
 
 // 🔐 Login check route
 app.post('/jiraHelper/login', async (req, res) => {
@@ -406,6 +407,7 @@ app.post('/jiraHelper/tickets', async (req, res) => {
 });
 
 app.use('/userTickets', userTicketsRoute); // ✅ This mounts /userTickets/getAllTicket
+app.use('/user-work-log', userWorkLogRoute); // ✅ This mounts /user-work-log/log-work
 
 const PORT = process.env.PORT || 8081;
 app.listen(PORT, () => {
